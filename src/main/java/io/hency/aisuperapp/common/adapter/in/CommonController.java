@@ -9,6 +9,15 @@ import io.hency.aisuperapp.infrastructure.client.dto.OpenAIApiClientResponse;
 import io.hency.aisuperapp.infrastructure.config.azure.openai.AzureOpenAIConfig;
 import io.hency.aisuperapp.infrastructure.config.web.context.RequestContextHolder;
 import io.hency.aisuperapp.infrastructure.config.web.context.UserContextHolder;
+import io.modelcontextprotocol.client.McpAsyncClient;
+import io.modelcontextprotocol.client.McpClient;
+import io.modelcontextprotocol.client.transport.WebFluxSseClientTransport;
+import io.modelcontextprotocol.server.McpAsyncServer;
+import io.modelcontextprotocol.server.McpServer;
+import io.modelcontextprotocol.server.McpServerFeatures;
+import io.modelcontextprotocol.server.transport.WebFluxSseServerTransportProvider;
+import io.modelcontextprotocol.spec.McpSchema;
+import jakarta.annotation.PostConstruct;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -20,15 +29,18 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -39,6 +51,132 @@ public class CommonController {
     private final OpenAIApiClient openAIApiClient;
     private final AzureOpenAIConfig azureOpenAIConfig;
 
+    private McpAsyncServer mcpServer;
+    private final WebFluxSseServerTransportProvider transportProvider;
+
+    @PostConstruct
+    public void initializeMcpServer() {
+        try {
+
+            // 서버 인스턴스 생성
+            this.mcpServer = McpServer.async(transportProvider)
+                    .serverInfo("ai-super-app-server", "1.0.0")
+                    .capabilities(McpSchema.ServerCapabilities.builder()
+                            .tools(true)
+                            .logging()
+                            .build())
+                    .build();
+
+            // 도구 등록
+            registerCalculationTool();
+
+            log.info("MCP 서버가 초기화되었습니다");
+        } catch (Exception e) {
+            log.error("MCP 서버 초기화 중 오류 발생", e);
+        }
+    }
+
+    private void registerCalculationTool() {
+        McpServerFeatures.AsyncToolSpecification calculationTool =
+                new McpServerFeatures.AsyncToolSpecification(
+                        new McpSchema.Tool("calculation", "Simple calculator", """
+                {
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "type": "object",
+                    "properties": {
+                        "operation": { "type": "string", "enum": ["add", "multiply"] },
+                        "a": { "type": "number" },
+                        "b": { "type": "number" }
+                    },
+                    "required": ["operation", "a", "b"]
+                }
+                """),
+                        (exchange, params) -> {
+                            try {
+                                String operation = (String) params.get("operation");
+                                Number a = (Number) params.get("a");
+                                Number b = (Number) params.get("b");
+
+                                double result = "add".equals(operation)
+                                        ? a.doubleValue() + b.doubleValue()
+                                        : a.doubleValue() * b.doubleValue();
+
+                                log.info("계산 결과: {} {} {} = {}", a, operation, b, result);
+
+                                return Mono.just(new McpSchema.CallToolResult(
+                                        List.of(new McpSchema.TextContent("Result: " + result)),
+                                        null
+                                ));
+                            } catch (Exception e) {
+                                log.error("도구 실행 중 오류", e);
+                                return Mono.error(e);
+                            }
+                        }
+                );
+
+        mcpServer.addTool(calculationTool)
+                .doOnSuccess(v -> log.info("계산 도구 등록 완료"))
+                .subscribe();
+    }
+
+    @GetMapping("/test-mcp")
+    public Mono<String> mcpTest() {
+        var client = getClient();
+        return client.initialize()
+                .flatMap(initResult -> {
+                    log.info("클라이언트 초기화 완료: {}", initResult);
+                    return client.listTools();
+                })
+                .flatMap(toolsResult -> {
+                    log.info("사용 가능한 도구: {}", toolsResult.tools());
+                    if (toolsResult.tools().isEmpty()) {
+                        return Mono.just("사용 가능한 도구가 없습니다");
+                    }
+
+                    // 도구 호출
+                    return client.callTool(new McpSchema.CallToolRequest(
+                                    "calculation",  // 도구 이름
+                                    Map.of("operation", "add", "a", 2, "b", 3)
+                            ))
+                            .map(callResult -> {
+                                if (callResult.content() != null && !callResult.content().isEmpty()) {
+                                    McpSchema.Content firstContent = callResult.content().get(0);
+
+                                    // Content 타입 확인 및 변환
+                                    if (firstContent instanceof McpSchema.TextContent textContent) {
+                                        return "도구 호출 성공: " + textContent.text();
+                                    } else {
+                                        return "도구 호출 성공: " + firstContent.toString();
+                                    }
+                                }
+                                return "도구 호출 성공 (내용 없음)";
+                            });
+                })
+                .onErrorResume(e -> {
+                    log.error("MCP 테스트 오류", e);
+                    return Mono.just("오류: " + e.getMessage());
+                });
+    }
+
+    private McpAsyncClient getClient() {
+        // 가장 단순한 경로 구조 사용
+        var transport = new WebFluxSseClientTransport(WebClient.builder()
+                .baseUrl("http://localhost:8080")
+        );
+
+        return McpClient
+                .async(transport)
+                .requestTimeout(Duration.ofSeconds(30))
+                .capabilities(McpSchema.ClientCapabilities.builder()
+                        .build())
+                .toolsChangeConsumer(tools -> {
+                    log.info("도구 업데이트: {}", tools);
+                    return Mono.empty();
+                })
+                .build();
+    }
+
+
     @GetMapping("/favicon.ico")
     public ResponseEntity<Void> handleFaviconRequest() {
         return ResponseEntity.noContent().build();
@@ -47,21 +185,19 @@ public class CommonController {
     @GetMapping("/health-check")
     public Mono<ResponseEntity<String>> healthCheck() {
 
-            return Mono.zip(
-                            UserContextHolder.getUserMono(),
-                            RequestContextHolder.getRequest()
-                    )
-                    .flatMap(tuple -> {
-                        User user = tuple.getT1();
-                        ServerHttpRequest request = tuple.getT2();
+        return Mono.zip(
+                        UserContextHolder.getUserMono(),
+                        RequestContextHolder.getRequest()
+                )
+                .flatMap(tuple -> {
+                    User user = tuple.getT1();
+                    ServerHttpRequest request = tuple.getT2();
 
-                        log.info("User: {}", user.email());
-                        log.info("Request: {}", request.getPath());
+                    log.info("User: {}", user.email());
+                    log.info("Request: {}", request.getPath());
 
-                        return Mono.just(ResponseEntity.ok("OK"));
-                    });
-
-//        return ResponseEntity.ok("OK");
+                    return Mono.just(ResponseEntity.ok("OK"));
+                });
     }
 
     @GetMapping(value = "/test/open-ai-api-client/send-message", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -154,59 +290,65 @@ public class CommonController {
 
     @PostMapping("/analyze/project")
     public ResponseEntity<?> analyzeGitlabProject(@Valid @RequestBody AnalyzeGitlabProjectRequest request) {
-        String BASE_DIR = "/Users/james/Developer/repomix-test";
-        String token = request.getToken();
-        String repoUrl = request.getRepoUrl();
-        String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        String randomText = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        Flux<String> responseFlux = Flux.create(sink -> {
+            String BASE_DIR = "/Users/james/Developer/repomix-test";
+            String token = request.getToken();
+            String repoUrl = request.getRepoUrl();
+            String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+            String randomText = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
 
-        File targetDirectory = new File(BASE_DIR + File.separator + today + File.separator + randomText);
+            File targetDirectory = new File(BASE_DIR + File.separator + today + File.separator + randomText);
 
-        if (targetDirectory.exists()) {
-            deleteDirectory(targetDirectory);
-        }
-
-        if (!targetDirectory.mkdirs()) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("디렉토리 생성 실패: " + targetDirectory.getAbsolutePath());
-        }
-
-        try {
-            // GitLab HTTP 인증 시 사용자명은 보통 "oauth2" (필요에 따라 변경)
-            Git.cloneRepository()
-                    .setURI(repoUrl)
-                    .setDirectory(targetDirectory)
-                    .setCredentialsProvider(new UsernamePasswordCredentialsProvider("oauth2", token))
-                    .call();
-
-            ProcessBuilder processBuilder = new ProcessBuilder("npx", "repomix", "--style", "markdown");
-            processBuilder.directory(targetDirectory);
-            processBuilder.redirectErrorStream(true);
-            Process process = processBuilder.start();
-
-            String output = new BufferedReader(new InputStreamReader(process.getInputStream()))
-                    .lines().collect(Collectors.joining("\n"));
-            int exitCode = process.waitFor();
-
-            File repomixOutputFile = new File(targetDirectory, "repomix-output.md");
-            int exactTokenCount = 0;
-            if (repomixOutputFile.exists()) {
-                String repomixOutput = Files.readString(repomixOutputFile.toPath());
-                exactTokenCount = getExactTokenCount(repomixOutput);
+            if (targetDirectory.exists()) {
+                deleteDirectory(targetDirectory);
             }
 
-            String responseMessage = "리포지토리가 " + targetDirectory.getAbsolutePath() + " 에 클론되었습니다.\n" +
-                    "Command Exit Code: " + exitCode + "\nCommand Output: " + output +
-                    "\nrepomix-output.txt 토큰 수 (정확한 계산): " + exactTokenCount;
-            return ResponseEntity.ok(responseMessage);
-        } catch (IOException | InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("명령 실행 중 오류 발생: " + e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("클론 중 오류 발생: " + e.getMessage());
-        }
+            if (!targetDirectory.mkdirs()) {
+                sink.error(new RuntimeException("디렉토리 생성 실패: " + targetDirectory.getAbsolutePath()));
+                return;
+            }
+
+            try {
+                // GitLab HTTP 인증 시 사용자명은 보통 "oauth2" (필요에 따라 변경)
+                Git.cloneRepository()
+                        .setURI(repoUrl)
+                        .setDirectory(targetDirectory)
+                        .setCredentialsProvider(new UsernamePasswordCredentialsProvider("oauth2", token))
+                        .call();
+                sink.next("repository clone 이 끝났습니다.");
+
+                ProcessBuilder processBuilder = new ProcessBuilder("npx", "repomix", "--style", "markdown");
+                processBuilder.directory(targetDirectory);
+                processBuilder.redirectErrorStream(true);
+                Process process = processBuilder.start();
+
+                String output = new BufferedReader(new InputStreamReader(process.getInputStream()))
+                        .lines().collect(Collectors.joining("\n"));
+                int exitCode = process.waitFor();
+
+                sink.next("프로젝트가 패키징 되었습니다.");
+
+                sink.next(output);
+
+                sink.next(String.valueOf(exitCode));
+
+                File repomixOutputFile = new File(targetDirectory, "repomix-output.md");
+                int exactTokenCount = 0;
+                if (repomixOutputFile.exists()) {
+                    String repomixOutput = Files.readString(repomixOutputFile.toPath());
+                    exactTokenCount = getExactTokenCount(repomixOutput);
+                }
+
+                sink.next("프로젝트 패키징된 내용의 전체 토큰은 " + exactTokenCount + " 입니다.");
+                sink.complete();
+            } catch (IOException | InterruptedException e) {
+                Thread.currentThread().interrupt();
+                sink.error(new RuntimeException("명령 실행 중 오류 발생: " + e.getMessage()));
+            } catch (Exception e) {
+                sink.error(new RuntimeException("클론 중 오류 발생: " + e.getMessage()));
+            }
+        });
+        return ResponseEntity.ok(responseFlux);
     }
 
     @SneakyThrows

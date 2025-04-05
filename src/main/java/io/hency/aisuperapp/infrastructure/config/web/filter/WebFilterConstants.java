@@ -10,7 +10,16 @@ public class WebFilterConstants {
             "/webjars/swagger-ui/**",
             "/execute",
             "/clone",
-            "/analyze/project"
+            "/analyze/project",
+            "/mcp-test",
+            "/mcp/sse",
+            "/sse",
+            "/api/mcp/sse/**",
+            "/test-mcp/**",
+            "/test-message/**",
+            "/test-sse/**",
+            "/sse/**",
+            "/message/**"
     );
 
     public static final String TID = "T-Id";

@@ -8,6 +8,8 @@ import io.hency.aisuperapp.features.topic.application.port.in.TopicUseCase;
 import io.hency.aisuperapp.features.topic.domain.entity.Topic;
 import io.hency.aisuperapp.features.user.domain.entity.User;
 import io.hency.aisuperapp.infrastructure.config.web.context.UserContextHolder;
+import io.modelcontextprotocol.client.McpAsyncClient;
+import io.modelcontextprotocol.client.McpSyncClient;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Valid;
 import jakarta.validation.Validation;
