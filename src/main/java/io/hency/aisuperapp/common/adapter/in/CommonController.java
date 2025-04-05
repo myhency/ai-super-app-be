@@ -51,74 +51,6 @@ public class CommonController {
     private final OpenAIApiClient openAIApiClient;
     private final AzureOpenAIConfig azureOpenAIConfig;
 
-    private McpAsyncServer mcpServer;
-    private final WebFluxSseServerTransportProvider transportProvider;
-
-    @PostConstruct
-    public void initializeMcpServer() {
-        try {
-
-            // 서버 인스턴스 생성
-            this.mcpServer = McpServer.async(transportProvider)
-                    .serverInfo("ai-super-app-server", "1.0.0")
-                    .capabilities(McpSchema.ServerCapabilities.builder()
-                            .tools(true)
-                            .logging()
-                            .build())
-                    .build();
-
-            // 도구 등록
-            registerCalculationTool();
-
-            log.info("MCP 서버가 초기화되었습니다");
-        } catch (Exception e) {
-            log.error("MCP 서버 초기화 중 오류 발생", e);
-        }
-    }
-
-    private void registerCalculationTool() {
-        McpServerFeatures.AsyncToolSpecification calculationTool =
-                new McpServerFeatures.AsyncToolSpecification(
-                        new McpSchema.Tool("calculation", "Simple calculator", """
-                {
-                    "$schema": "http://json-schema.org/draft-07/schema#",
-                    "type": "object",
-                    "properties": {
-                        "operation": { "type": "string", "enum": ["add", "multiply"] },
-                        "a": { "type": "number" },
-                        "b": { "type": "number" }
-                    },
-                    "required": ["operation", "a", "b"]
-                }
-                """),
-                        (exchange, params) -> {
-                            try {
-                                String operation = (String) params.get("operation");
-                                Number a = (Number) params.get("a");
-                                Number b = (Number) params.get("b");
-
-                                double result = "add".equals(operation)
-                                        ? a.doubleValue() + b.doubleValue()
-                                        : a.doubleValue() * b.doubleValue();
-
-                                log.info("계산 결과: {} {} {} = {}", a, operation, b, result);
-
-                                return Mono.just(new McpSchema.CallToolResult(
-                                        List.of(new McpSchema.TextContent("Result: " + result)),
-                                        null
-                                ));
-                            } catch (Exception e) {
-                                log.error("도구 실행 중 오류", e);
-                                return Mono.error(e);
-                            }
-                        }
-                );
-
-        mcpServer.addTool(calculationTool)
-                .doOnSuccess(v -> log.info("계산 도구 등록 완료"))
-                .subscribe();
-    }
-
     @GetMapping("/test-mcp")
     public Mono<String> mcpTest() {
         var client = getClient();
@@ -155,6 +87,9 @@ public class CommonController {
                 .onErrorResume(e -> {
                     log.error("MCP 테스트 오류", e);
                     return Mono.just("오류: " + e.getMessage());
+                })
+                .doOnSuccess(result -> {
+                    client.close();
                 });
     }
 
