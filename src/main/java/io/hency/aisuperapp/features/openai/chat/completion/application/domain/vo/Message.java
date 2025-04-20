@@ -18,7 +18,6 @@ import java.util.Collections;
 import java.util.List;
 
 @Data
-@AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 @NoArgsConstructor
 public class Message {
@@ -32,9 +31,34 @@ public class Message {
     @JsonUnwrapped
     private MessageContent content;
 
+    @JsonProperty("tool_call_id")
+    private String toolCallId;
+
+    @JsonProperty("name")
+    private String name;
+
+    @JsonProperty("refusal")
+    private String refusal;
+
+    @JsonProperty("tool_calls")
+    private List<ToolCall> toolCalls;
+
+    @JsonProperty("function_call")
+    private FunctionCall functionCall;
+
+    @JsonProperty("audio")
+    private Audio audio;
+
     public Message(String role, String content) {
         this.role = Role.valueOf(role);
         this.content = new TextMessageContent(content);
+    }
+
+    // Constructor for tool messages
+    public Message(String role, String content, String toolCallId) {
+        this.role = Role.valueOf(role);
+        this.content = new TextMessageContent(content);
+        this.toolCallId = toolCallId;
     }
 
     public interface MessageContent {}
@@ -153,4 +177,49 @@ public class Message {
     public enum Type {
         text, image_url
     }
+
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class Audio {
+        @JsonProperty("id")
+        private String id;
+    }
+
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class FunctionCall {
+        @JsonProperty("name")
+        private String name;
+
+        @JsonProperty("arguments")
+        private String arguments;
+    }
+
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class ToolCall {
+        @JsonProperty("id")
+        private String id;
+
+        @JsonProperty("type")
+        private String type;
+
+        @JsonProperty("function")
+        private FunctionCallDetails function;
+    }
+
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class FunctionCallDetails {
+        @JsonProperty("name")
+        private String name;
+
+        @JsonProperty("arguments")
+        private String arguments;
+    }
+
 }

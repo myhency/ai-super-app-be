@@ -40,7 +40,6 @@ public class ChatCompletionRequest {
     private List<String> functions;
 
     @Data
-    @AllArgsConstructor
     @JsonIgnoreProperties(ignoreUnknown = true)
     @NoArgsConstructor
     public static class Message {
@@ -54,9 +53,34 @@ public class ChatCompletionRequest {
         @JsonUnwrapped
         private MessageContent content;
 
+        @JsonProperty("tool_call_id")
+        private String toolCallId;
+
+        @JsonProperty("name")
+        private String name;
+
+        @JsonProperty("refusal")
+        private String refusal;
+
+        @JsonProperty("tool_calls")
+        private List<ToolCall> toolCalls;
+
+        @JsonProperty("function_call")
+        private FunctionCall functionCall;
+
+        @JsonProperty("audio")
+        private Audio audio;
+
         public Message(String role, String content) {
             this.role = Role.valueOf(role);
             this.content = new TextMessageContent(content);
+        }
+
+        // Constructor for tool messages
+        public Message(String role, String content, String toolCallId) {
+            this.role = Role.valueOf(role);
+            this.content = new TextMessageContent(content);
+            this.toolCallId = toolCallId;
         }
 
         public interface MessageContent {}
@@ -177,6 +201,51 @@ public class ChatCompletionRequest {
         }
     }
 
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class Audio {
+        @JsonProperty("id")
+        private String id;
+    }
+
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class FunctionCall {
+        @JsonProperty("name")
+        private String name;
+
+        @JsonProperty("arguments")
+        private String arguments;
+    }
+
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class ToolCall {
+        @JsonProperty("id")
+        private String id;
+
+        @JsonProperty("type")
+        private String type;
+
+        @JsonProperty("function")
+        private FunctionCallDetails function;
+    }
+
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class FunctionCallDetails {
+        @JsonProperty("name")
+        private String name;
+
+        @JsonProperty("arguments")
+        private String arguments;
+    }
+
+    @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Tool {
@@ -184,6 +253,7 @@ public class ChatCompletionRequest {
         private FunctionDefinition function;
     }
 
+    @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class FunctionDefinition {
@@ -193,6 +263,7 @@ public class ChatCompletionRequest {
         private Boolean strict;
     }
 
+    @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class JsonSchema {
@@ -202,6 +273,7 @@ public class ChatCompletionRequest {
         private Boolean additionalProperties;
     }
 
+    @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class JsonSchemaProperty {
@@ -213,6 +285,8 @@ public class ChatCompletionRequest {
         private List<String> enumValues;
     }
 
+    @Data
+    @AllArgsConstructor
     public static class StreamOptions {
         private Boolean includeUsage;
     }
