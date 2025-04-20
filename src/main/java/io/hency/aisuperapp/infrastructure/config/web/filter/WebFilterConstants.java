@@ -19,7 +19,8 @@ public class WebFilterConstants {
             "/test-message/**",
             "/test-sse/**",
             "/sse/**",
-            "/message/**"
+            "/message/**",
+            "/v2/**"
     );
 
     public static final String TID = "T-Id";

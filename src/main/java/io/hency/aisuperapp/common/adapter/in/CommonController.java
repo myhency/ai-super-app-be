@@ -2,6 +2,7 @@ package io.hency.aisuperapp.common.adapter.in;
 
 import io.hency.aisuperapp.common.adapter.in.dto.AnalyzeGitlabProjectRequest;
 import io.hency.aisuperapp.common.adapter.in.dto.CloneRequest;
+import io.hency.aisuperapp.common.adapter.in.dto.McpToolRequest;
 import io.hency.aisuperapp.features.user.domain.entity.User;
 import io.hency.aisuperapp.infrastructure.client.OpenAIApiClient;
 import io.hency.aisuperapp.infrastructure.client.dto.OpenAIApiClientRequest;
@@ -51,8 +52,26 @@ public class CommonController {
     private final OpenAIApiClient openAIApiClient;
     private final AzureOpenAIConfig azureOpenAIConfig;
 
-    @GetMapping("/test-mcp")
-    public Mono<String> mcpTest() {
+    private static final List<String> AVAILABLE_TOOLS = List.of("subtractDivide");
+
+    @PostMapping("/test-mcp")
+    public Mono<String> mcpTest(@RequestBody McpToolRequest request) {
+        // 도구 이름이 제공되지 않았거나 허용 목록에 없는 경우
+        if (request.getToolName() == null || !AVAILABLE_TOOLS.contains(request.getToolName())) {
+            return Mono.just("실행 가능한 도구는 다음과 같습니다: " + String.join(", ", AVAILABLE_TOOLS));
+        }
+
+        // 필요한 파라미터가 누락된 경우
+        if (request.getOperation() == null || request.getA() == null || request.getB() == null) {
+            return Mono.just("operation, a, b 파라미터가 모두 필요합니다.");
+        }
+
+        // operation 값이 올바른지 확인
+        String operation = request.getOperation();
+        if (!operation.equals("subtract") && !operation.equals("divide")) {
+            return Mono.just("operation은 'subtract' 또는 'divide'만 허용됩니다.");
+        }
+
         var client = getClient();
         return client.initialize()
                 .flatMap(initResult -> {
@@ -61,14 +80,21 @@ public class CommonController {
                 })
                 .flatMap(toolsResult -> {
                     log.info("사용 가능한 도구: {}", toolsResult.tools());
-                    if (toolsResult.tools().isEmpty()) {
-                        return Mono.just("사용 가능한 도구가 없습니다");
+
+                    // 사용 가능한 도구 목록에서 요청한 도구 확인
+                    boolean hasRequestedTool = toolsResult.tools().stream()
+                            .anyMatch(tool -> request.getToolName().equals(tool.name()));
+
+                    if (!hasRequestedTool) {
+                        return Mono.just(request.getToolName() + " 도구를 찾을 수 없습니다");
                     }
 
-                    // 도구 호출
+                    // 도구 호출 - 파라미터로 받은 값 사용
                     return client.callTool(new McpSchema.CallToolRequest(
-                                    "calculation",  // 도구 이름
-                                    Map.of("operation", "add", "a", 2, "b", 3)
+                                    request.getToolName(),
+                                    Map.of("operation", request.getOperation(),
+                                            "a", request.getA(),
+                                            "b", request.getB())
                             ))
                             .map(callResult -> {
                                 if (callResult.content() != null && !callResult.content().isEmpty()) {
@@ -88,9 +114,7 @@ public class CommonController {
                     log.error("MCP 테스트 오류", e);
                     return Mono.just("오류: " + e.getMessage());
                 })
-                .doOnSuccess(result -> {
-                    client.close();
-                });
+                .doOnSuccess(result -> client.close());
     }
 
     private McpAsyncClient getClient() {

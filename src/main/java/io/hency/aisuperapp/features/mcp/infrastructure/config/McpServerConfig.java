@@ -13,6 +13,7 @@ import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
 import static io.hency.aisuperapp.features.mcp.infrastructure.config.McpServerTools.registerCalculationTool;
+import static io.hency.aisuperapp.features.mcp.infrastructure.config.McpServerTools.registerDividerTool;
 
 @Slf4j
 @Configuration
@@ -57,6 +58,7 @@ public class McpServerConfig {
                     .build();
 
             registerCalculationTool(server);
+            registerDividerTool(server);
 
             log.info("MCP 서버가 초기화되었습니다");
             return server;
