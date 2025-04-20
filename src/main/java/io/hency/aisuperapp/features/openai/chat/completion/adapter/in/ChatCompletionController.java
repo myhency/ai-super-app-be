@@ -27,7 +27,8 @@ public class ChatCompletionController {
             ServerHttpResponse response
     ) {
         try {
-            log.debug(request.toString());
+            log.info("Send chat completion request: {}", request);
+            log.info(request.toString());
             var chatCompletionModel = ChatCompletionModel.fromName(model);
             ChatCompletionPayload payload;
 

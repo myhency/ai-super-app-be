@@ -20,7 +20,7 @@ public class ChatCompletionAdapter implements ChatCompletionPort {
 
     @Override
     public Flux<?> sendChat(ChatCompletionPayload payload, ChatCompletionModel model) {
-        var resource = (ChatCompletionProperties.Resources) properties.getResources()
+        var resource = properties.getResources()
                 .stream()
                 .filter(resources -> resources.getModel().equals(model.getName()))
                 .findFirst()

@@ -1,13 +1,18 @@
 package io.hency.aisuperapp.features.openai.chat.completion.application.domain.vo;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.EqualsAndHashCode;
-import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.*;
+
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @EqualsAndHashCode(callSuper = true)
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class GptSeriesPayload extends ChatCompletionPayload {
-    @Setter
+    @JsonProperty("max_tokens")
     private Integer maxTokens;
 
 
