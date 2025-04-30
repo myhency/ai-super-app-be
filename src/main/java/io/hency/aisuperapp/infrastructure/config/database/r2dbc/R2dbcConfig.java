@@ -2,7 +2,7 @@ package io.hency.aisuperapp.infrastructure.config.database.r2dbc;
 
 import io.asyncer.r2dbc.mysql.MySqlConnectionConfiguration;
 import io.asyncer.r2dbc.mysql.MySqlConnectionFactory;
-import io.hency.aisuperapp.features.user.domain.entity.User;
+import io.hency.aisuperapp.features.user.application.domain.entity.User;
 import io.hency.aisuperapp.infrastructure.config.database.DatabaseConfig;
 import io.hency.aisuperapp.infrastructure.config.database.r2dbc.converter.read.UlidReadConverter;
 import io.hency.aisuperapp.infrastructure.config.database.r2dbc.converter.read.ZonedDateTimeReadConverter;

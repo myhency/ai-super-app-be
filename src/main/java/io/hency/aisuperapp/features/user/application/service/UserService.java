@@ -1,4 +1,4 @@
-package io.hency.aisuperapp.features.user.domain.service;
+package io.hency.aisuperapp.features.user.application.service;
 
 import io.hency.aisuperapp.common.error.ErrorCode;
 import io.hency.aisuperapp.common.error.exception.UnauthorizedException;
@@ -6,7 +6,7 @@ import io.hency.aisuperapp.common.util.JwtUtils;
 import io.hency.aisuperapp.features.user.adapter.out.dto.TeamsUser;
 import io.hency.aisuperapp.features.user.application.port.in.UserUseCase;
 import io.hency.aisuperapp.features.user.application.port.out.UserPort;
-import io.hency.aisuperapp.features.user.domain.entity.User;
+import io.hency.aisuperapp.features.user.application.domain.entity.User;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -2,7 +2,7 @@ package io.hency.aisuperapp.infrastructure.config.redis;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.hency.aisuperapp.auth.domain.entity.Token;
-import io.hency.aisuperapp.features.user.domain.entity.User;
+import io.hency.aisuperapp.features.user.application.domain.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

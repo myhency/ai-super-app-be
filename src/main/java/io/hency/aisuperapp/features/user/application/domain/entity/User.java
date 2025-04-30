@@ -1,4 +1,4 @@
-package io.hency.aisuperapp.features.user.domain.entity;
+package io.hency.aisuperapp.features.user.application.domain.entity;
 
 import java.time.ZonedDateTime;
 

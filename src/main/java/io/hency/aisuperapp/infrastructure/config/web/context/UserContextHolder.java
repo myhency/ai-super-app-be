@@ -1,6 +1,6 @@
 package io.hency.aisuperapp.infrastructure.config.web.context;
 
-import io.hency.aisuperapp.features.user.domain.entity.User;
+import io.hency.aisuperapp.features.user.application.domain.entity.User;
 import reactor.core.publisher.Mono;
 
 public class UserContextHolder {

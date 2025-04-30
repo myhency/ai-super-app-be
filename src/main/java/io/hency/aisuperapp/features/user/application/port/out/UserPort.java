@@ -2,7 +2,7 @@ package io.hency.aisuperapp.features.user.application.port.out;
 
 import com.github.f4b6a3.ulid.Ulid;
 import io.hency.aisuperapp.features.user.adapter.out.dto.TeamsUser;
-import io.hency.aisuperapp.features.user.domain.entity.User;
+import io.hency.aisuperapp.features.user.application.domain.entity.User;
 import reactor.core.publisher.Mono;
 
 public interface UserPort {

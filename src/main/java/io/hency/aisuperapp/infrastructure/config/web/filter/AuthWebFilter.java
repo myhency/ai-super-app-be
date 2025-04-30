@@ -5,7 +5,7 @@ import io.hency.aisuperapp.common.error.ErrorCode;
 import io.hency.aisuperapp.common.error.exception.TokenExpiredException;
 import io.hency.aisuperapp.common.error.exception.UnauthorizedException;
 import io.hency.aisuperapp.common.util.HttpUtils;
-import io.hency.aisuperapp.features.user.domain.entity.User;
+import io.hency.aisuperapp.features.user.application.domain.entity.User;
 import io.hency.aisuperapp.infrastructure.config.web.context.RequestContextHolder;
 import io.hency.aisuperapp.infrastructure.config.web.context.UserContextHolder;
 import lombok.extern.slf4j.Slf4j;

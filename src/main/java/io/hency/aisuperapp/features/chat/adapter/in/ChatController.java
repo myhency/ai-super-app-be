@@ -6,7 +6,7 @@ import io.hency.aisuperapp.features.chat.application.port.in.ChatUseCase;
 import io.hency.aisuperapp.features.chat.application.domain.entity.Chat;
 import io.hency.aisuperapp.features.topic.application.port.in.TopicUseCase;
 import io.hency.aisuperapp.features.topic.application.domain.entity.Topic;
-import io.hency.aisuperapp.features.user.domain.entity.User;
+import io.hency.aisuperapp.features.user.application.domain.entity.User;
 import io.hency.aisuperapp.infrastructure.config.web.context.UserContextHolder;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Valid;

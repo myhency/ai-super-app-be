@@ -1,7 +1,7 @@
 package io.hency.aisuperapp.features.userlimit.adapter.out;
 
 import io.hency.aisuperapp.auth.constant.AccessType;
-import io.hency.aisuperapp.features.user.domain.entity.User;
+import io.hency.aisuperapp.features.user.application.domain.entity.User;
 import io.hency.aisuperapp.features.userlimit.application.port.out.UserLimitPort;
 import io.hency.aisuperapp.features.userlimit.domain.entity.UserLimitEntity;
 import io.hency.aisuperapp.infrastructure.repository.user.UserLimitRepository;

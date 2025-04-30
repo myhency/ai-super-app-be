@@ -1,6 +1,6 @@
 package io.hency.aisuperapp.infrastructure.repository.cache;
 
-import io.hency.aisuperapp.features.user.domain.entity.User;
+import io.hency.aisuperapp.features.user.application.domain.entity.User;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.data.redis.core.ReactiveValueOperations;
 import org.springframework.stereotype.Repository;

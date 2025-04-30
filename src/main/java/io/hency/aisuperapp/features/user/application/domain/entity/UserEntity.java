@@ -1,4 +1,4 @@
-package io.hency.aisuperapp.features.user.domain.entity;
+package io.hency.aisuperapp.features.user.application.domain.entity;
 
 import com.github.f4b6a3.ulid.Ulid;
 import com.github.f4b6a3.ulid.UlidCreator;

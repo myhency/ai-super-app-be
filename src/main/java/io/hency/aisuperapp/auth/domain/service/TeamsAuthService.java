@@ -10,7 +10,7 @@ import io.hency.aisuperapp.common.error.exception.UnauthorizedException;
 import io.hency.aisuperapp.common.util.JwtUtils;
 import io.hency.aisuperapp.features.user.application.port.in.UserUseCase;
 import io.hency.aisuperapp.features.user.application.port.out.UserPort;
-import io.hency.aisuperapp.features.user.domain.entity.User;
+import io.hency.aisuperapp.features.user.application.domain.entity.User;
 import io.hency.aisuperapp.features.userlimit.application.port.out.UserLimitPort;
 import io.hency.aisuperapp.infrastructure.config.auth.TeamsAuthConfig;
 import lombok.RequiredArgsConstructor;
