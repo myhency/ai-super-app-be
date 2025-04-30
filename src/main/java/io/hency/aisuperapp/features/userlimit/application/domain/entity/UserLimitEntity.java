@@ -1,4 +1,4 @@
-package io.hency.aisuperapp.features.userlimit.domain.entity;
+package io.hency.aisuperapp.features.userlimit.application.domain.entity;
 
 import io.hency.aisuperapp.auth.constant.AccessType;
 import io.hency.aisuperapp.common.domain.entity.BaseDateEntity;

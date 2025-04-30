@@ -1,6 +1,6 @@
-package io.hency.aisuperapp.infrastructure.repository.user;
+package io.hency.aisuperapp.features.userlimit.infrastructure.repository;
 
-import io.hency.aisuperapp.features.userlimit.domain.entity.UserLimitEntity;
+import io.hency.aisuperapp.features.userlimit.application.domain.entity.UserLimitEntity;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import reactor.core.publisher.Mono;
 
