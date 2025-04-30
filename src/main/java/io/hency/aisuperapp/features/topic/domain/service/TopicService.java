@@ -5,7 +5,7 @@ import io.hency.aisuperapp.common.constant.SystemPrompt;
 import io.hency.aisuperapp.common.error.ErrorCode;
 import io.hency.aisuperapp.common.error.exception.TopicNotFoundException;
 import io.hency.aisuperapp.features.chat.application.port.out.ChatPort;
-import io.hency.aisuperapp.features.chat.domain.entity.Message;
+import io.hency.aisuperapp.features.chat.application.domain.entity.Message;
 import io.hency.aisuperapp.features.topic.application.port.in.TopicUseCase;
 import io.hency.aisuperapp.features.topic.application.port.out.TopicPort;
 import io.hency.aisuperapp.features.topic.domain.entity.Topic;

@@ -1,12 +1,12 @@
-package io.hency.aisuperapp.features.chat.domain.service;
+package io.hency.aisuperapp.features.chat.application.service;
 
 import com.github.f4b6a3.ulid.Ulid;
 import io.hency.aisuperapp.features.chat.application.port.in.ChatUseCase;
 import io.hency.aisuperapp.features.chat.application.port.out.ChatPort;
-import io.hency.aisuperapp.features.chat.domain.entity.Chat;
-import io.hency.aisuperapp.features.chat.domain.entity.ChatEntity;
-import io.hency.aisuperapp.features.chat.domain.entity.Message;
-import io.hency.aisuperapp.features.chat.domain.entity.SendChatCommand;
+import io.hency.aisuperapp.features.chat.application.domain.entity.Chat;
+import io.hency.aisuperapp.features.chat.application.domain.entity.ChatEntity;
+import io.hency.aisuperapp.features.chat.application.domain.entity.Message;
+import io.hency.aisuperapp.features.chat.application.domain.entity.SendChatCommand;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

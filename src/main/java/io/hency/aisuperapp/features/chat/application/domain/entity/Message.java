@@ -1,6 +1,6 @@
-package io.hency.aisuperapp.features.chat.domain.entity;
+package io.hency.aisuperapp.features.chat.application.domain.entity;
 
-import io.hency.aisuperapp.features.chat.domain.enums.ChatRoleType;
+import io.hency.aisuperapp.features.chat.application.domain.enums.ChatRoleType;
 
 public record Message(
         String content,

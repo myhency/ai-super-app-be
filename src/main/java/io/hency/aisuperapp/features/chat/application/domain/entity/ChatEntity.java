@@ -1,8 +1,8 @@
-package io.hency.aisuperapp.features.chat.domain.entity;
+package io.hency.aisuperapp.features.chat.application.domain.entity;
 
 import com.github.f4b6a3.ulid.Ulid;
 import io.hency.aisuperapp.common.domain.entity.BaseIdEntity;
-import io.hency.aisuperapp.features.chat.domain.enums.ChatRoleType;
+import io.hency.aisuperapp.features.chat.application.domain.enums.ChatRoleType;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

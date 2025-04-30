@@ -1,4 +1,4 @@
-package io.hency.aisuperapp.features.chat.domain.entity;
+package io.hency.aisuperapp.features.chat.application.domain.entity;
 
 import com.github.f4b6a3.ulid.Ulid;
 

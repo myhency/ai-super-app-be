@@ -2,7 +2,7 @@ package io.hency.aisuperapp.infrastructure.repository.chat;
 
 import com.github.f4b6a3.ulid.Ulid;
 import io.hency.aisuperapp.common.domain.enums.SliceDirection;
-import io.hency.aisuperapp.features.chat.domain.entity.ChatEntity;
+import io.hency.aisuperapp.features.chat.application.domain.entity.ChatEntity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
