@@ -7,7 +7,7 @@ import io.hency.aisuperapp.features.user.application.domain.entity.User;
 import io.hency.aisuperapp.features.user.application.domain.entity.UserEntity;
 import io.hency.aisuperapp.infrastructure.client.MsGraphApiClient;
 import io.hency.aisuperapp.infrastructure.repository.cache.UserCacheRepository;
-import io.hency.aisuperapp.infrastructure.repository.user.UserRepository;
+import io.hency.aisuperapp.features.user.infrastructure.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
