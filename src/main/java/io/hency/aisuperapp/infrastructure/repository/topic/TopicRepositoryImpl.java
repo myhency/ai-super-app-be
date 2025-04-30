@@ -1,6 +1,6 @@
 package io.hency.aisuperapp.infrastructure.repository.topic;
 
-import io.hency.aisuperapp.features.topic.domain.entity.TopicEntity;
+import io.hency.aisuperapp.features.topic.application.domain.entity.TopicEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;

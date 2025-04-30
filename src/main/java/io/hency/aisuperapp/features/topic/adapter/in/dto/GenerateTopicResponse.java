@@ -1,6 +1,6 @@
 package io.hency.aisuperapp.features.topic.adapter.in.dto;
 
-import io.hency.aisuperapp.features.topic.domain.entity.Topic;
+import io.hency.aisuperapp.features.topic.application.domain.entity.Topic;
 import lombok.Builder;
 
 import java.time.ZonedDateTime;

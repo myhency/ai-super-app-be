@@ -1,7 +1,7 @@
 package io.hency.aisuperapp.features.topic.application.port.out;
 
 import com.github.f4b6a3.ulid.Ulid;
-import io.hency.aisuperapp.features.topic.domain.entity.TopicEntity;
+import io.hency.aisuperapp.features.topic.application.domain.entity.TopicEntity;
 import reactor.core.publisher.Mono;
 
 public interface TopicPort {

@@ -1,4 +1,4 @@
-package io.hency.aisuperapp.features.topic.domain.service;
+package io.hency.aisuperapp.features.topic.application.service;
 
 import com.github.f4b6a3.ulid.Ulid;
 import io.hency.aisuperapp.common.constant.SystemPrompt;
@@ -8,8 +8,8 @@ import io.hency.aisuperapp.features.chat.application.port.out.ChatPort;
 import io.hency.aisuperapp.features.chat.application.domain.entity.Message;
 import io.hency.aisuperapp.features.topic.application.port.in.TopicUseCase;
 import io.hency.aisuperapp.features.topic.application.port.out.TopicPort;
-import io.hency.aisuperapp.features.topic.domain.entity.Topic;
-import io.hency.aisuperapp.features.topic.domain.entity.TopicEntity;
+import io.hency.aisuperapp.features.topic.application.domain.entity.Topic;
+import io.hency.aisuperapp.features.topic.application.domain.entity.TopicEntity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
