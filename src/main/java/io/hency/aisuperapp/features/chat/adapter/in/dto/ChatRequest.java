@@ -6,7 +6,7 @@ import io.hency.aisuperapp.common.util.UlidUtils;
 import io.hency.aisuperapp.features.chat.application.domain.entity.Message;
 import io.hency.aisuperapp.features.chat.application.domain.entity.SendChatCommand;
 import io.hency.aisuperapp.features.chat.application.domain.enums.ChatRoleType;
-import io.hency.aisuperapp.infrastructure.client.dto.OpenAIApiClientRequest;
+import io.hency.aisuperapp.features.chat.infrastructure.external.dto.OpenAIApiClientRequest;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;

@@ -3,7 +3,7 @@ package io.hency.aisuperapp.features.topic.adapter.out;
 import com.github.f4b6a3.ulid.Ulid;
 import io.hency.aisuperapp.features.topic.application.port.out.TopicPort;
 import io.hency.aisuperapp.features.topic.application.domain.entity.TopicEntity;
-import io.hency.aisuperapp.infrastructure.repository.topic.TopicRepository;
+import io.hency.aisuperapp.features.topic.infrastructure.repository.TopicRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;

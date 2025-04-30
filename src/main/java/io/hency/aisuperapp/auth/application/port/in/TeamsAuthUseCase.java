@@ -1,6 +1,6 @@
 package io.hency.aisuperapp.auth.application.port.in;
 
-import io.hency.aisuperapp.auth.domain.entity.Token;
+import io.hency.aisuperapp.auth.application.domain.entity.Token;
 import io.hency.aisuperapp.features.user.application.domain.entity.User;
 import reactor.core.publisher.Mono;
 

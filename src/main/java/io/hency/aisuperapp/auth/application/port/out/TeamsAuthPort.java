@@ -1,8 +1,8 @@
 package io.hency.aisuperapp.auth.application.port.out;
 
 import io.hency.aisuperapp.auth.constant.AccessType;
-import io.hency.aisuperapp.auth.domain.entity.Token;
-import io.hency.aisuperapp.infrastructure.client.dto.MsOAuthApiClientResponse;
+import io.hency.aisuperapp.auth.application.domain.entity.Token;
+import io.hency.aisuperapp.auth.infrastructure.external.dto.MsOAuthApiClientResponse;
 import reactor.core.publisher.Mono;
 
 public interface TeamsAuthPort {

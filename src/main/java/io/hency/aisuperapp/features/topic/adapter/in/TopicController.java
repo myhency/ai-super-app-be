@@ -4,7 +4,7 @@ import com.github.f4b6a3.ulid.Ulid;
 import io.hency.aisuperapp.common.util.UlidUtils;
 import io.hency.aisuperapp.features.topic.adapter.in.dto.GenerateTopicResponse;
 import io.hency.aisuperapp.features.topic.application.port.in.TopicUseCase;
-import io.hency.aisuperapp.infrastructure.config.web.context.UserContextHolder;
+import io.hency.aisuperapp.common.infrastructure.config.web.context.UserContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;

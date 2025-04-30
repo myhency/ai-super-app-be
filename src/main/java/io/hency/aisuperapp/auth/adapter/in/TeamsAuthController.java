@@ -3,7 +3,7 @@ package io.hency.aisuperapp.auth.adapter.in;
 import io.hency.aisuperapp.auth.adapter.in.dto.TeamsLoginUrlResponse;
 import io.hency.aisuperapp.auth.application.port.in.TeamsLoginUseCase;
 import io.hency.aisuperapp.common.util.HttpUtils;
-import io.hency.aisuperapp.infrastructure.config.auth.TeamsAuthConfig;
+import io.hency.aisuperapp.auth.infrastructure.config.TeamsAuthConfig;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
