@@ -1,6 +1,6 @@
 package io.hency.aisuperapp.features.openai.chat.completion.infrastructure.external;
 
-import io.hency.aisuperapp.features.openai.chat.completion.infrastructure.config.ChatCompletionProperties;
+import io.hency.aisuperapp.features.openai.chat.completion.infrastructure.config.OpenaiProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatusCode;
@@ -25,7 +25,7 @@ public class OpenAiChatCompletionClient {
 
     public Flux<?> sendChat(
             Object payload,
-            ChatCompletionProperties.Resources resource
+            OpenaiProperties.Resources resource
     ) {
         return send(
                 resource.getModel(),

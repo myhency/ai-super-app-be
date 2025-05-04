@@ -9,7 +9,7 @@ import java.util.List;
 @Data
 @Configuration
 @ConfigurationProperties(prefix = "external.azure.openai.chat.completion")
-public class ChatCompletionProperties {
+public class OpenaiProperties {
     private List<Resources> resources;
 
     @Data

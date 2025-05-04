@@ -1,31 +1,18 @@
 package io.hency.aisuperapp.features.openai.chat.completion.adapter.in.dto;
 
 import com.fasterxml.jackson.annotation.*;
-import com.fasterxml.jackson.core.JacksonException;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.*;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import io.hency.aisuperapp.features.openai.chat.completion.application.domain.vo.ChatCompletionModel;
-import io.hency.aisuperapp.features.openai.chat.completion.application.domain.vo.GptSeriesPayload;
-import io.hency.aisuperapp.features.openai.chat.completion.application.domain.vo.OSeriesPayload;
+import io.hency.aisuperapp.common.adapter.in.dto.BaseRequest;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
-import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ChatCompletionRequest {
+public class ChatCompletionRequest extends BaseRequest {
     @NotEmpty(message = "messages should not be empty")
     private List<Message> messages;
 
@@ -132,30 +119,5 @@ public class ChatCompletionRequest {
 
         @JsonProperty("include_usage")
         private Boolean includeUsage;
-    }
-
-    @Override
-    public String toString() {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-            mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-            return mapper.writeValueAsString(this);
-        } catch (JsonProcessingException e) {
-            return super.toString();
-        }
-    }
-
-    public Object toPayload() {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
-            String jsonString = mapper.writeValueAsString(this);
-
-            return mapper.readValue(jsonString, Object.class);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
     }
 }

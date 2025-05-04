@@ -11,14 +11,14 @@ import java.util.Map;
 @Configuration
 public class OpenAiWebClientConfig {
     @Bean("OpenAiChatCompletionClient")
-    public Map<String, WebClient> openAiChatCompletionClient(ChatCompletionProperties properties) {
+    public Map<String, WebClient> openAiChatCompletionClient(OpenaiProperties properties) {
         ExchangeStrategies strategies = ExchangeStrategies.builder()
                 .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(20*1024*1024))
                 .build();
         return buildWebClients(properties, strategies);
     }
 
-    private Map<String, WebClient> buildWebClients(ChatCompletionProperties properties, ExchangeStrategies strategies) {
+    private Map<String, WebClient> buildWebClients(OpenaiProperties properties, ExchangeStrategies strategies) {
         Map<String, WebClient> webClients = new HashMap<>();
 
         properties.getResources().forEach(resources -> {
