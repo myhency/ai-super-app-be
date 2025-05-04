@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-public class OpenAiWebClientConfig {
+public class OpenaiWebClientConfig {
     @Bean("OpenAiChatCompletionClient")
     public Map<String, WebClient> openAiChatCompletionClient(OpenaiProperties properties) {
         ExchangeStrategies strategies = ExchangeStrategies.builder()
