@@ -19,7 +19,7 @@ public class ChatCompletionAdapter implements ChatCompletionPort {
     private final OpenAiChatCompletionClient client;
 
     @Override
-    public Flux<?> sendChat(ChatCompletionPayload payload, ChatCompletionModel model) {
+    public Flux<?> sendChat(Object payload, ChatCompletionModel model) {
         var resource = properties.getResources()
                 .stream()
                 .filter(resources -> resources.getModel().equals(model.getName()))

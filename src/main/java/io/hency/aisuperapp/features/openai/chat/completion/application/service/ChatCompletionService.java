@@ -17,7 +17,7 @@ public class ChatCompletionService implements ChatCompletionUseCase {
     private final ChatCompletionPort chatCompletionPort;
 
     @Override
-    public Flux<?> chatCompletion(ChatCompletionPayload payload, ChatCompletionModel model) {
+    public Flux<?> chatCompletion(Object payload, ChatCompletionModel model) {
         Flux<?> result = chatCompletionPort.sendChat(payload, model)
                 .cache();
 

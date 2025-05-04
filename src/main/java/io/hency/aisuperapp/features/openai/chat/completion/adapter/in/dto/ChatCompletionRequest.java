@@ -26,268 +26,111 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ChatCompletionRequest {
-    private Double temperature;
-    private Double topP;
-    private Boolean stream = false;
-    private Integer maxTokens;
-    private Integer maxCompletionTokens;
     @NotEmpty(message = "messages should not be empty")
     private List<Message> messages;
-    private StreamOptions streamOptions;
-    private List<Tool> tools;
-    private String toolChoice;
+
+    private String model;
+
+    private Object audio;
+
+    @JsonProperty("frequency_penalty")
+    private Integer frequencyPenalty;
+
+    @JsonProperty("function_call")
     private String functionCall;
-    private List<String> functions;
+
+    private List<Object> functions;
+
+    @JsonProperty("logit_bias")
+    private Object logitBias;
+
+    private Boolean logprobs;
+
+    @JsonProperty("max_completion_tokens")
+    private Integer maxCompletionTokens;
+
+    @JsonProperty("max_tokens")
+    private Integer maxTokens;
+
+    private Object metadata;
+
+    private List<Object> modalities;
+
+    private Integer n;
+
+    @JsonProperty("parallel_tool_calls")
+    private Boolean parallelToolCalls;
+
+    private Object prediction;
+
+    @JsonProperty("presence_penalty")
+    private Integer presencePenalty;
+
+    @JsonProperty("reasoning_effort")
+    private String reasoningEffort;
+
+    @JsonProperty("response_format")
+    private Object responseFormat;
+
+    private Integer seed;
+
+    private String stop;
+
+    private Boolean stream = false;
+
+    @JsonProperty("stream_options")
+    private StreamOptions streamOptions;
+
+    private Double temperature;
+
+    @JsonProperty("tool_choice")
+    private String toolChoice;
+
+    private List<Object> tools;
+
+    @JsonProperty("top_logprobs")
+    private Integer topLogprobs;
+
+    @JsonProperty("top_p")
+    private Double topP;
+
+    private String user;
+
+    @JsonProperty("web_search_options")
+    private Object webSearchOptions;
 
     @Data
-    @JsonIgnoreProperties(ignoreUnknown = true)
+    @AllArgsConstructor
     @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Message {
 
-        @JsonProperty("role")
-        private Role role;
+        private String name;
 
-        @JsonProperty("content")
-        @JsonDeserialize(using = MessageContentDeserializer.class)
+        private String role;
+
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         @JsonIgnoreProperties(ignoreUnknown = true)
-        @JsonUnwrapped
-        private MessageContent content;
+        private Object content;
+
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        private Object audio;
+
+        private String refusal;
+
+        private List<Object> toolCalls;
 
         @JsonProperty("tool_call_id")
         private String toolCallId;
-
-        @JsonProperty("name")
-        private String name;
-
-        @JsonProperty("refusal")
-        private String refusal;
-
-        @JsonProperty("tool_calls")
-        private List<ToolCall> toolCalls;
-
-        @JsonProperty("function_call")
-        private FunctionCall functionCall;
-
-        @JsonProperty("audio")
-        private Audio audio;
-
-        public Message(String role, String content) {
-            this.role = Role.valueOf(role);
-            this.content = new TextMessageContent(content);
-        }
-
-        // Constructor for tool messages
-        public Message(String role, String content, String toolCallId) {
-            this.role = Role.valueOf(role);
-            this.content = new TextMessageContent(content);
-            this.toolCallId = toolCallId;
-        }
-
-        public interface MessageContent {}
-
-        public record TextMessageContent(
-                @JsonValue
-                String content
-        ) implements MessageContent {}
-
-        public record MultiPartMessageContent(List<Content> content)
-                implements MessageContent {}
-
-        public static class MessageContentDeserializer extends JsonDeserializer<MessageContent> {
-
-            @Override
-            public MessageContent deserialize(JsonParser p, DeserializationContext ctxt)
-                    throws IOException, JacksonException {
-                JsonNode node = p.getCodec().readTree(p);
-                if (node.isTextual()) {
-                    return new TextMessageContent(node.asText());
-                } else if (node.isArray()) {
-                    ObjectMapper mapper = (ObjectMapper) p.getCodec();
-                    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
-
-                    if (node.isEmpty()) {
-                        throw new JsonParseException(p, "Content array cannot be empty");
-                    }
-
-                    List<Content> contents = mapper.convertValue(node, new TypeReference<>() {
-                    });
-                    return new MultiPartMessageContent(contents);
-                } else if (node.isObject()) {
-                    ObjectMapper mapper = (ObjectMapper) p.getCodec();
-                    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
-
-                    Content content = mapper.convertValue(node, Content.class);
-                    return new MultiPartMessageContent(Collections.singletonList(content));
-                }
-                throw new JsonParseException(p, "Unexpected content format");
-            }
-        }
-
-        @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type", include = JsonTypeInfo.As.EXISTING_PROPERTY)
-        @JsonSubTypes({
-                @JsonSubTypes.Type(value = ContentText.class, name = "text"),
-                @JsonSubTypes.Type(value = ContentImageUrl.class, name = "image_url")
-        })
-        @JsonIgnoreProperties()
-        public static abstract class Content {
-
-            @JsonProperty("type")
-            protected final Type type;
-
-            protected Content(Type type) { this.type = type;}
-        }
-
-        @EqualsAndHashCode(callSuper = true)
-        @JsonIgnoreProperties()
-        public static class ContentText extends Content {
-
-            @JsonProperty("text")
-            private String text;
-
-            public ContentText() { super(Type.text); }
-
-            public ContentText(String text) {
-                super(Type.text);
-                this.text = text;
-            }
-        }
-
-        @EqualsAndHashCode(callSuper = true)
-        @JsonIgnoreProperties()
-        public static class ContentImageUrl extends Content {
-
-            @JsonProperty("image_url")
-            private ImageUrl imageUrl;
-
-            public ContentImageUrl() { super(Type.image_url); }
-
-            public ContentImageUrl(ImageUrl imageUrl) {
-                super(Type.image_url);
-                this.imageUrl = imageUrl;
-            }
-        }
-
-        @JsonIgnoreProperties()
-        public static class ImageUrl {
-
-            @JsonProperty("url")
-            private String url;
-
-            public ImageUrl() {}
-
-            public ImageUrl(String url) { this.url = url; }
-        }
-
-        public enum Role {
-            system, user, assistant, tool;
-
-            @JsonCreator
-            public static Message.Role fromValue(String value) {
-                for (Message.Role role : Message.Role.values()) {
-                    if (role.name().equalsIgnoreCase(value)) {
-                        return role;
-                    }
-                }
-
-                throw new RuntimeException();
-            }
-
-            @JsonValue
-            public String toValue() { return this.name(); }
-        }
-
-        public enum Type {
-            text, image_url
-        }
-    }
-
-    @Data
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public static class Audio {
-        @JsonProperty("id")
-        private String id;
-    }
-
-    @Data
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public static class FunctionCall {
-        @JsonProperty("name")
-        private String name;
-
-        @JsonProperty("arguments")
-        private String arguments;
-    }
-
-    @Data
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public static class ToolCall {
-        @JsonProperty("id")
-        private String id;
-
-        @JsonProperty("type")
-        private String type;
-
-        @JsonProperty("function")
-        private FunctionCallDetails function;
-    }
-
-    @Data
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public static class FunctionCallDetails {
-        @JsonProperty("name")
-        private String name;
-
-        @JsonProperty("arguments")
-        private String arguments;
-    }
-
-    @Data
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public static class Tool {
-        private String type;
-        private FunctionDefinition function;
-    }
-
-    @Data
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public static class FunctionDefinition {
-        private String name;
-        private String description;
-        private JsonSchema parameters;
-        private Boolean strict;
-    }
-
-    @Data
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public static class JsonSchema {
-        private String type;
-        private Map<String, JsonSchemaProperty> properties;
-        private List<String> required;
-        private Boolean additionalProperties;
-    }
-
-    @Data
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public static class JsonSchemaProperty {
-        private Object type;
-        private String description;
-        private Map<String, JsonSchemaProperty> properties;
-        private List<String> required;
-        private Boolean additionalProperties;
-        private List<String> enumValues;
     }
 
     @Data
     @AllArgsConstructor
     public static class StreamOptions {
+
+        @JsonProperty("include_usage")
         private Boolean includeUsage;
     }
 
@@ -303,52 +146,14 @@ public class ChatCompletionRequest {
         }
     }
 
-    public OSeriesPayload toOSeriesPayload(ChatCompletionModel model) {
+    public Object toPayload() {
         try {
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
             String jsonString = mapper.writeValueAsString(this);
 
-            OSeriesPayload payload = mapper.readValue(jsonString, OSeriesPayload.class);
-
-            if (this.maxCompletionTokens != null) {
-                payload.setMaxCompletionTokens(this.maxCompletionTokens);
-            }
-
-            if (this.maxTokens != null) {
-                throw new RuntimeException();
-            }
-
-            if(model.equals(ChatCompletionModel.O3)) {
-                payload.setTemperature(1.0);
-            }
-
-            return payload;
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public GptSeriesPayload toGptSeriesPayload() {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
-            String jsonString = mapper.writeValueAsString(this);
-
-            GptSeriesPayload payload = mapper.readValue(jsonString, GptSeriesPayload.class);
-
-            if (this.maxCompletionTokens != null) {
-                throw new RuntimeException();
-
-            }
-
-            if (this.maxTokens != null) {
-                payload.setMaxTokens(this.maxTokens);
-            }
-
-            return payload;
+            return mapper.readValue(jsonString, Object.class);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }

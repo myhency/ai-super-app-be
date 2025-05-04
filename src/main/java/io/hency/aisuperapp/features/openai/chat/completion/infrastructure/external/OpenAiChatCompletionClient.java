@@ -1,9 +1,6 @@
 package io.hency.aisuperapp.features.openai.chat.completion.infrastructure.external;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.hency.aisuperapp.features.openai.chat.completion.application.domain.vo.ChatCompletionPayload;
 import io.hency.aisuperapp.features.openai.chat.completion.infrastructure.config.ChatCompletionProperties;
-import io.hency.aisuperapp.features.openai.chat.completion.infrastructure.external.dto.ChatCompletionResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatusCode;
@@ -12,7 +9,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.io.IOException;
 import java.util.Map;
 
 @Slf4j
@@ -28,7 +24,7 @@ public class OpenAiChatCompletionClient {
     }
 
     public Flux<?> sendChat(
-            ChatCompletionPayload payload,
+            Object payload,
             ChatCompletionProperties.Resources resource
     ) {
         return send(
@@ -45,7 +41,7 @@ public class OpenAiChatCompletionClient {
             String deploymentId,
             String apiKey,
             String apiVersion,
-            ChatCompletionPayload payload
+            Object payload
     ) {
         var client = webClients.get(model);
 
@@ -72,20 +68,7 @@ public class OpenAiChatCompletionClient {
                                     return Mono.error(new RuntimeException(error));
                                 })
                 )
-                .bodyToFlux(String.class)
-                .filter(response -> !response.equals("[DONE]"))
-                .flatMap(response -> {
-                    try {
-                        log.debug("Sending chat completion response: {}", response);
-                        ChatCompletionResponse completionResponse =
-                                new ObjectMapper()
-                                        .readValue(response, ChatCompletionResponse.class);
-                        return Flux.just(completionResponse);
-                    } catch (IOException e) {
-                        log.error("IO error occurred while sending chat completion response: {}", response);
-                        return Flux.empty();
-                    }
-                });
+                .bodyToFlux(Object.class);
 
     }
 }

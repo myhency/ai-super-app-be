@@ -5,5 +5,5 @@ import io.hency.aisuperapp.features.openai.chat.completion.application.domain.vo
 import reactor.core.publisher.Flux;
 
 public interface ChatCompletionPort {
-    Flux<?> sendChat(ChatCompletionPayload payload, ChatCompletionModel model);
+    Flux<?> sendChat(Object payload, ChatCompletionModel model);
 }
