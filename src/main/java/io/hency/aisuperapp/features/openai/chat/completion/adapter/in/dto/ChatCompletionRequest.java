@@ -120,4 +120,9 @@ public class ChatCompletionRequest extends BaseRequest {
         @JsonProperty("include_usage")
         private Boolean includeUsage;
     }
+
+    @Override
+    public String toString() {
+        return super.toString();
+    }
 }

@@ -7,6 +7,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
 public abstract class BaseRequest {
+
+    @Override
     public String toString() {
         try {
             ObjectMapper mapper = new ObjectMapper();

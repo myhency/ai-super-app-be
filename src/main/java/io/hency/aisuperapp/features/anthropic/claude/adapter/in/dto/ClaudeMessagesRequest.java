@@ -197,4 +197,9 @@ public class ClaudeMessagesRequest extends BaseRequest {
             gen.writeEndObject();
         }
     }
+
+    @Override
+    public String toString() {
+        return super.toString();
+    }
 }
