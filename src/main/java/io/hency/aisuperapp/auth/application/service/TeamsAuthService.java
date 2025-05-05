@@ -3,7 +3,7 @@ package io.hency.aisuperapp.auth.application.service;
 import com.github.f4b6a3.ulid.Ulid;
 import io.hency.aisuperapp.auth.application.port.in.TeamsAuthUseCase;
 import io.hency.aisuperapp.auth.application.port.out.TeamsAuthPort;
-import io.hency.aisuperapp.auth.constant.AccessType;
+import io.hency.aisuperapp.auth.application.domain.vo.AccessType;
 import io.hency.aisuperapp.auth.application.domain.entity.Token;
 import io.hency.aisuperapp.common.error.ErrorCode;
 import io.hency.aisuperapp.common.error.exception.UnauthorizedException;

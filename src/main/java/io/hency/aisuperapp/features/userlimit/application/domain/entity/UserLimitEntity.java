@@ -1,6 +1,6 @@
 package io.hency.aisuperapp.features.userlimit.application.domain.entity;
 
-import io.hency.aisuperapp.auth.constant.AccessType;
+import io.hency.aisuperapp.auth.application.domain.vo.AccessType;
 import io.hency.aisuperapp.common.domain.entity.BaseDateEntity;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

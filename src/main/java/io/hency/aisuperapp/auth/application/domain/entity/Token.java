@@ -1,6 +1,6 @@
 package io.hency.aisuperapp.auth.application.domain.entity;
 
-import io.hency.aisuperapp.auth.constant.ApplicationType;
+import io.hency.aisuperapp.auth.application.domain.vo.ApplicationType;
 
 import java.time.ZonedDateTime;
 

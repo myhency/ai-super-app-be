@@ -2,7 +2,7 @@ package io.hency.aisuperapp.auth.infrastructure.external.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.hency.aisuperapp.auth.constant.ApplicationType;
+import io.hency.aisuperapp.auth.application.domain.vo.ApplicationType;
 import io.hency.aisuperapp.auth.application.domain.entity.Token;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

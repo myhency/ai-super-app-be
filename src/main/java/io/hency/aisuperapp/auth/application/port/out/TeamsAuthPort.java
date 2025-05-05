@@ -1,6 +1,6 @@
 package io.hency.aisuperapp.auth.application.port.out;
 
-import io.hency.aisuperapp.auth.constant.AccessType;
+import io.hency.aisuperapp.auth.application.domain.vo.AccessType;
 import io.hency.aisuperapp.auth.application.domain.entity.Token;
 import io.hency.aisuperapp.auth.infrastructure.external.dto.MsOAuthApiClientResponse;
 import reactor.core.publisher.Mono;

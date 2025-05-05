@@ -1,4 +1,4 @@
-package io.hency.aisuperapp.auth.constant;
+package io.hency.aisuperapp.auth.application.domain.vo;
 
 public enum AccessType {
     TEAMS_BROWSER,
