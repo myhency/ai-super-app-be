@@ -35,11 +35,14 @@ public class AuthWebFilter extends BaseAuthWebFilter {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
+
+        final ServerHttpRequest request = exchange.getRequest();
+        final ServerHttpResponse response = exchange.getResponse();
+
         if (isOptionsMethod(exchange) || isExcludeUrl(exchange)) {
             return chain.filter(exchange);
         }
 
-        final ServerHttpRequest request = exchange.getRequest();
         final String accessToken = Optional.of(HttpUtils.extractBearerToken(request.getHeaders()))
                 .filter(token -> !token.isEmpty())
                 .orElseThrow(() -> {
@@ -48,7 +51,6 @@ public class AuthWebFilter extends BaseAuthWebFilter {
                 });
         final String ipAddress = Optional.ofNullable(request.getHeaders().getFirst("X-Real-Ip"))
                 .orElse(request.getRemoteAddress().getAddress().getHostAddress());
-        final ServerHttpResponse response = exchange.getResponse();
 
         return teamsAuthUseCase.authorize(accessToken, ipAddress)
                 .onErrorResume(ex -> {

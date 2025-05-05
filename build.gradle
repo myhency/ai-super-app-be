@@ -57,6 +57,9 @@ dependencies {
     // mcp
     implementation 'io.modelcontextprotocol.sdk:mcp-spring-webflux:0.8.1'
 
+    // google auth
+    implementation 'com.google.auth:google-auth-library-oauth2-http:1.33.1'
+
 }
 
 tasks.named('test') {

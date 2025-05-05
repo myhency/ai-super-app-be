@@ -1,5 +1,6 @@
 package io.hency.aisuperapp.features.openai.chat.completion.infrastructure.external;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.hency.aisuperapp.features.openai.chat.completion.infrastructure.config.OpenaiProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -68,7 +69,19 @@ public class OpenAiChatCompletionClient {
                                     return Mono.error(new RuntimeException(error));
                                 })
                 )
-                .bodyToFlux(Object.class);
+                .bodyToFlux(String.class)
+                .filter(response -> !response.equals("[DONE]"))
+                .flatMap(response -> {
+                    try {
+                        Object res = new ObjectMapper().readValue(
+                                response, Object.class
+                        );
+                        return Flux.just(res);
+                    } catch (Exception e) {
+                        return Flux.empty();
+                    }
+                });
+
 
     }
 }
