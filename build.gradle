@@ -61,6 +61,7 @@ dependencies {
     implementation 'com.google.auth:google-auth-library-oauth2-http:1.33.1'
 
     implementation project(":openai")
+    implementation project(":claude")
 
 }
 

@@ -48,3 +48,6 @@ out/
 
 /openai/http/**
 /openai/src/main/resources/**
+
+/claude/http/**
+/claude/src/main/resources/**
