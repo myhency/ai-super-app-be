@@ -42,6 +42,27 @@ public class NotificationController {
     public Flux<ServerSentEvent<Object>> subscribe() {
         log.info("New SSE subscription request received");
 
+        // 초기 연결 확인 이벤트
+        Flux<ServerSentEvent<Object>> initialFlux = Flux.just(
+                ServerSentEvent.builder()
+                        .event("connection")
+                        .data(Map.of("status", "connected", "timestamp", System.currentTimeMillis()))
+                        .build()
+        ).doOnNext(sse -> log.info("Sending initial connection event"));
+
+        // 최신 알림을 가져와서 전송하는 Flux
+        Flux<ServerSentEvent<Object>> latestNotificationFlux = eventService.getLatestNotificationAndPublish()
+                .map(event -> {
+                    log.info("Converting latest notification to SSE: {}", event);
+                    return ServerSentEvent.builder()
+                            .id(event.getUlid())
+                            .event("latest_notification")
+                            .data(event)
+                            .build();
+                })
+                .doOnNext(sse -> log.info("Sending latest notification SSE: id={}", sse.id()))
+                .flux();
+
         // 이벤트 스트림 변환
         Flux<ServerSentEvent<Object>> eventFlux = eventService.getEventStream()
                 .map(event -> {
@@ -60,8 +81,8 @@ public class NotificationController {
                 .doOnNext(sse -> log.info("Sending SSE: id={}, event={}", sse.id(), sse.event()))
                 .onErrorContinue((error, obj) -> log.error("Error processing event: {}, object: {}", error.getMessage(), obj, error));
 
-        // 하트비트 이벤트와 병합
-        Flux<ServerSentEvent<Object>> heartbeatFlux = Flux.interval(Duration.ofSeconds(1))
+        // 하트비트 이벤트
+        Flux<ServerSentEvent<Object>> heartbeatFlux = Flux.interval(Duration.ofSeconds(15))
                 .map(sequence -> {
                     log.debug("Sending heartbeat (seq: {})", sequence);
                     return ServerSentEvent.builder()
@@ -69,15 +90,8 @@ public class NotificationController {
                             .build();
                 });
 
-        // 초기 연결 확인 이벤트
-        Flux<ServerSentEvent<Object>> initialFlux = Flux.just(
-                ServerSentEvent.builder()
-                        .event("connection")
-                        .data(Map.of("status", "connected", "timestamp", System.currentTimeMillis()))
-                        .build()
-        ).doOnNext(sse -> log.info("Sending initial connection event"));
-
-        return Flux.merge(initialFlux, eventFlux, heartbeatFlux)
+        return Flux.concat(initialFlux, latestNotificationFlux)
+                .concatWith(Flux.merge(eventFlux, heartbeatFlux))
                 .doOnSubscribe(subscription -> log.info("SSE connection established: {}", subscription))
                 .doOnCancel(() -> log.info("SSE subscription cancelled"))
                 .doOnComplete(() -> log.info("SSE subscription completed"))

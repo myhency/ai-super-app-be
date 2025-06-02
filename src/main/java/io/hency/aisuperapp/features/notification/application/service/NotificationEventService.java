@@ -1,23 +1,28 @@
 package io.hency.aisuperapp.features.notification.application.service;
 
 import io.hency.aisuperapp.features.notification.application.domain.vo.NotificationChangeEvent;
+import io.hency.aisuperapp.features.notification.infrastructure.repository.NotificationRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
-
-import org.springframework.beans.factory.DisposableBean;
 
 @Slf4j
 @Service
 public class NotificationEventService implements DisposableBean {
 
+    private final NotificationRepository notificationRepository;
+
     // Hot publisher로 변경하여 구독자가 없어도 이벤트를 보관
     private final Sinks.Many<NotificationChangeEvent> eventSink;
     private final Flux<NotificationChangeEvent> eventFlux;
 
-    public NotificationEventService() {
+    public NotificationEventService(NotificationRepository notificationRepository) {
+        this.notificationRepository = notificationRepository;
+
         // replay(1) 사용하여 마지막 이벤트를 새 구독자에게도 전달
         this.eventSink = Sinks.many()
                 .replay()
@@ -81,6 +86,32 @@ public class NotificationEventService implements DisposableBean {
     public Flux<NotificationChangeEvent> getEventStream() {
         log.info("Providing event stream to new subscriber");
         return eventFlux;
+    }
+
+    /**
+     * 클라이언트 연결 시 최신 알림을 조회하여 이벤트로 변환하여 반환
+     */
+    public Mono<NotificationChangeEvent> getLatestNotificationAndPublish() {
+        log.info("Fetching latest notification for new subscriber");
+
+        return notificationRepository.findLatestNotification()
+                .map(notification -> {
+                    log.info("Found latest notification: {}", notification);
+                    return NotificationChangeEvent.builder()
+                            .eventType(NotificationChangeEvent.EventType.LATEST)
+                            .ulid(notification.getUlid().toString())
+                            .title(notification.getTitle())
+                            .content(notification.getContent())
+                            .build();
+                })
+                .doOnNext(event -> log.info("Created latest notification event: {}", event))
+                .doOnError(error -> log.error("Failed to fetch latest notification: {}", error.getMessage(), error))
+                .onErrorReturn(NotificationChangeEvent.builder()
+                        .eventType(NotificationChangeEvent.EventType.LATEST)
+                        .ulid("")
+                        .title("No notifications available")
+                        .content("")
+                        .build());
     }
 
     @Override
