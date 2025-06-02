@@ -31,6 +31,8 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'io.projectreactor:reactor-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    implementation 'com.azure:azure-ai-openai:1.0.0-beta.16'
 }
 
 tasks.named('test') {

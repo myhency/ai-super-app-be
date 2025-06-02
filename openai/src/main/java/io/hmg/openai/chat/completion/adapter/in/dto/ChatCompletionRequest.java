@@ -109,6 +109,7 @@ public class ChatCompletionRequest extends BaseRequest {
 
         private String refusal;
 
+        @JsonProperty("tool_calls")
         private List<Object> toolCalls;
 
         @JsonProperty("tool_call_id")

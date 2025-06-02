@@ -1,5 +1,10 @@
 package io.hmg.openai.chat.completion.infrastructure.external;
 
+import com.azure.ai.openai.implementation.accesshelpers.ChatCompletionsOptionsAccessHelper;
+import com.azure.ai.openai.models.*;
+import com.azure.json.JsonProviders;
+import com.azure.json.JsonWriter;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.hmg.openai.chat.completion.infrastructure.config.OpenaiProperties;
 import lombok.extern.slf4j.Slf4j;
@@ -10,6 +15,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -46,6 +55,8 @@ public class OpenAiChatCompletionClient {
     ) {
         var client = webClients.get(model);
 
+        var options = getChatCompletionsOptionString();
+
         return client.post()
                 .uri(uriBuilder -> uriBuilder
                         .path("/openai/deployments/" + deploymentId + "/chat/completions")
@@ -53,7 +64,7 @@ public class OpenAiChatCompletionClient {
                         .build()
                 )
                 .header("api-key", apiKey)
-                .bodyValue(payload)
+                .bodyValue(options.getBytes(StandardCharsets.UTF_8))
                 .retrieve()
                 .onStatus(HttpStatusCode::is4xxClientError,
                         clientResponse -> clientResponse.bodyToMono(String.class)
@@ -83,5 +94,35 @@ public class OpenAiChatCompletionClient {
                 });
 
 
+    }
+
+    private String getChatCompletionsOptionString() {
+        ChatRequestMessage message = new ChatRequestUserMessage("안녕 ");
+        ChatCompletionsOptions options = new ChatCompletionsOptions(List.of(message));
+
+        ChatCompletionStreamOptions streamOptions = new ChatCompletionStreamOptions()
+                .setIncludeUsage(true);
+
+        ChatCompletionsOptionsAccessHelper.setStream(options, true);
+        ChatCompletionsOptionsAccessHelper.setStreamOptions(options, streamOptions);
+
+        try {
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            JsonWriter jsonWriter = JsonProviders.createWriter(outputStream);
+            options.toJson(jsonWriter);
+            jsonWriter.close();
+
+            String jsonString = outputStream.toString(StandardCharsets.UTF_8);
+
+            log.info("ChatCompletionsOptions JSON: {}", jsonString);
+//            var objectMapper = new ObjectMapper();
+//            TypeReference<Map<String, Object>> typeRef = new TypeReference<>() {
+//            };
+//            return objectMapper.readValue(jsonString, typeRef);
+            return jsonString;
+        } catch (IOException e) {
+            log.error("Failed to serialize ChatCompletionsOptions to JSON", e);
+            throw new RuntimeException(e);
+        }
     }
 }
