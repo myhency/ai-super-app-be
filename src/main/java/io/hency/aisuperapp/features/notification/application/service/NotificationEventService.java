@@ -5,99 +5,33 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
-import java.util.concurrent.atomic.AtomicReference;
+import reactor.core.scheduler.Schedulers;
+
+import org.springframework.beans.factory.DisposableBean;
 
 @Slf4j
 @Service
-public class NotificationEventService {
-    // Sink 참조를 AtomicReference로 관리하여 필요시 재생성 가능
-    private final AtomicReference<Sinks.Many<NotificationChangeEvent>> eventSinkRef;
+public class NotificationEventService implements DisposableBean {
+
+    // Hot publisher로 변경하여 구독자가 없어도 이벤트를 보관
+    private final Sinks.Many<NotificationChangeEvent> eventSink;
+    private final Flux<NotificationChangeEvent> eventFlux;
 
     public NotificationEventService() {
-        // 초기 Sink 생성
-        Sinks.Many<NotificationChangeEvent> initialSink = createNewSink();
-        this.eventSinkRef = new AtomicReference<>(initialSink);
-        log.info("NotificationEventService initialized with multicast sink");
-    }
+        // replay(1) 사용하여 마지막 이벤트를 새 구독자에게도 전달
+        this.eventSink = Sinks.many()
+                .replay()
+                .limit(1);
 
-    // 새로운 Sink 생성 메서드
-    private Sinks.Many<NotificationChangeEvent> createNewSink() {
-        return Sinks.many()
-                .multicast()
-                .onBackpressureBuffer();
-    }
-
-    // 필요시 Sink 재생성 메서드
-    private Sinks.Many<NotificationChangeEvent> getOrCreateSink() {
-        Sinks.Many<NotificationChangeEvent> currentSink = eventSinkRef.get();
-
-        // 현재 Sink가 취소되었거나 오류 상태인 경우 새로 생성
-        if (currentSink == null) {
-            Sinks.Many<NotificationChangeEvent> newSink = createNewSink();
-            if (eventSinkRef.compareAndSet(null, newSink)) {
-                log.info("Created new event sink due to null reference");
-                return newSink;
-            } else {
-                return eventSinkRef.get(); // 다른 스레드가 이미 생성함
-            }
-        }
-
-        return currentSink;
-    }
-
-    public void publishEvent(NotificationChangeEvent event) {
-        log.info("Attempting to publish notification event: {}", event);
-
-        // 상세 정보 로그
-        log.debug("Event details - type: {}, ulid: {}, title: {}, content: {}",
-                event.getEventType(), event.getUlid(), event.getTitle(), event.getContent());
-
-        // 최대 3번 발행 시도
-        int maxRetries = 3;
-        Sinks.EmitResult result = null;
-
-        for (int attempt = 0; attempt < maxRetries; attempt++) {
-            Sinks.Many<NotificationChangeEvent> currentSink = getOrCreateSink();
-            result = currentSink.tryEmitNext(event);
-
-            if (result.isSuccess()) {
-                log.info("Successfully published notification event on attempt {}: {}", attempt + 1, event);
-                return;
-            } else if (result == Sinks.EmitResult.FAIL_CANCELLED ||
-                    result == Sinks.EmitResult.FAIL_TERMINATED) {
-                log.warn("Sink is cancelled or terminated, creating new sink. Attempt {}/{}",
-                        attempt + 1, maxRetries);
-                // Sink를 새로 생성하고 다시 시도
-                eventSinkRef.set(createNewSink());
-            } else {
-                // 다른 오류는 재시도하지 않고 로그만 남김
-                log.error("Failed to publish notification event (attempt {}/{}): {}, result: {}",
-                        attempt + 1, maxRetries, event, result);
-                break;
-            }
-        }
-
-        // 최종적으로 실패한 경우
-        if (result != null && !result.isSuccess()) {
-            log.error("Failed to publish notification event after {} attempts: {}, final result: {}",
-                    maxRetries, event, result);
-        }
-    }
-
-    public Flux<NotificationChangeEvent> getEventStream() {
-        log.info("Getting event stream from sink");
-
-        // 현재 활성 Sink에서 Flux 가져오기
-        Sinks.Many<NotificationChangeEvent> currentSink = getOrCreateSink();
-
-        return currentSink.asFlux()
-                .share()
-                .onBackpressureBuffer()
+        // Hot Flux로 생성하여 구독자 유무와 관계없이 이벤트 스트림 유지
+        this.eventFlux = eventSink.asFlux()
+                .share() // 여러 구독자가 같은 스트림을 공유
+                .subscribeOn(Schedulers.boundedElastic())
                 .doOnSubscribe(subscription -> {
                     log.info("New subscription to event stream: {}", subscription);
                 })
                 .doOnNext(event -> {
-                    log.info("Sending event to subscriber: {}", event);
+                    log.info("Broadcasting event to all subscribers: {}", event);
                 })
                 .doOnCancel(() -> {
                     log.info("Subscription to event stream cancelled");
@@ -106,7 +40,56 @@ public class NotificationEventService {
                     log.info("Event stream completed");
                 })
                 .doOnError(error -> {
-                    log.error("Error in event stream: {}", error.getMessage());
+                    log.error("Error in event stream: {}", error.getMessage(), error);
                 });
+
+        log.info("NotificationEventService initialized with hot multicast sink");
+    }
+
+    public void publishEvent(NotificationChangeEvent event) {
+        log.info("Publishing notification event: {}", event);
+
+        try {
+            Sinks.EmitResult result = eventSink.tryEmitNext(event);
+
+            switch (result) {
+                case OK:
+                    log.info("Successfully published notification event: {}", event);
+                    break;
+                case FAIL_ZERO_SUBSCRIBER:
+                    log.warn("No subscribers for event, but event is buffered: {}", event);
+                    // Hot publisher이므로 구독자가 없어도 버퍼에 저장됨
+                    break;
+                case FAIL_OVERFLOW:
+                    log.error("Buffer overflow when publishing event: {}", event);
+                    break;
+                case FAIL_CANCELLED:
+                case FAIL_TERMINATED:
+                    log.error("Sink is cancelled or terminated, cannot publish event: {}", event);
+                    break;
+                case FAIL_NON_SERIALIZED:
+                    log.error("Non-serialized access to sink when publishing event: {}", event);
+                    break;
+                default:
+                    log.error("Unknown emit result when publishing event: {}, result: {}", event, result);
+            }
+        } catch (Exception e) {
+            log.error("Exception occurred while publishing event: {}", event, e);
+        }
+    }
+
+    public Flux<NotificationChangeEvent> getEventStream() {
+        log.info("Providing event stream to new subscriber");
+        return eventFlux;
+    }
+
+    @Override
+    public void destroy() {
+        log.info("Cleaning up NotificationEventService");
+        try {
+            eventSink.tryEmitComplete();
+        } catch (Exception e) {
+            log.error("Error during cleanup: {}", e.getMessage(), e);
+        }
     }
 }
