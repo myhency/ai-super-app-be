@@ -3,7 +3,7 @@ package io.hmg.openai.chat.completion.adapter.out;
 import io.hmg.openai.chat.completion.application.domain.vo.ChatCompletionModel;
 import io.hmg.openai.chat.completion.application.port.out.ChatCompletionPort;
 import io.hmg.openai.chat.completion.infrastructure.config.OpenaiProperties;
-import io.hmg.openai.chat.completion.infrastructure.external.OpenAiChatCompletionClient;
+import io.hmg.openai.chat.completion.infrastructure.external.OpenaiChatCompletionClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -15,7 +15,7 @@ import reactor.core.publisher.Flux;
 public class ChatCompletionAdapter implements ChatCompletionPort {
 
     private final OpenaiProperties properties;
-    private final OpenAiChatCompletionClient client;
+    private final OpenaiChatCompletionClient client;
 
     @Override
     public Flux<?> sendChat(Object payload, ChatCompletionModel model) {

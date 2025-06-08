@@ -1,6 +1,5 @@
 package io.hmg.openai.chat.completion.infrastructure.external;
 
-import com.azure.ai.openai.implementation.accesshelpers.ChatCompletionsOptionsAccessHelper;
 import com.azure.ai.openai.models.*;
 import com.azure.json.JsonProviders;
 import com.azure.json.JsonWriter;
@@ -21,11 +20,11 @@ import java.util.Map;
 
 @Slf4j
 @Component
-public class OpenAiChatCompletionClient {
+public class OpenaiChatCompletionClient {
 
     private final Map<String, WebClient> webClients;
 
-    public OpenAiChatCompletionClient(@Qualifier("OpenAiChatCompletionClient") Map<String, WebClient> webClients) {
+    public OpenaiChatCompletionClient(@Qualifier("OpenAiChatCompletionClient") Map<String, WebClient> webClients) {
         this.webClients = webClients;
     }
 
