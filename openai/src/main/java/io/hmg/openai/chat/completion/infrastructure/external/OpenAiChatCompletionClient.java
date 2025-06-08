@@ -4,7 +4,6 @@ import com.azure.ai.openai.implementation.accesshelpers.ChatCompletionsOptionsAc
 import com.azure.ai.openai.models.*;
 import com.azure.json.JsonProviders;
 import com.azure.json.JsonWriter;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.hmg.openai.chat.completion.infrastructure.config.OpenaiProperties;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +17,6 @@ import reactor.core.publisher.Mono;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -27,18 +25,14 @@ public class OpenAiChatCompletionClient {
 
     private final Map<String, WebClient> webClients;
 
-    public OpenAiChatCompletionClient(
-            @Qualifier("OpenAiChatCompletionClient") Map<String, WebClient> webClients
-    ) {
+    public OpenAiChatCompletionClient(@Qualifier("OpenAiChatCompletionClient") Map<String, WebClient> webClients) {
         this.webClients = webClients;
     }
 
-    public Flux<?> sendChat(
-            Object payload,
-            OpenaiProperties.Resources resource
+    public Flux<?> sendChat(Object payload,
+                            OpenaiProperties.Resources resource
     ) {
-        return send(
-                resource.getModel(),
+        return send(resource.getModel(),
                 resource.getDeploymentId(),
                 resource.getApiKey(),
                 resource.getApiVersion(),
@@ -46,83 +40,66 @@ public class OpenAiChatCompletionClient {
         );
     }
 
-    private Flux<?> send(
-            String model,
-            String deploymentId,
-            String apiKey,
-            String apiVersion,
-            Object payload
+    private Flux<?> send(String model,
+                         String deploymentId,
+                         String apiKey,
+                         String apiVersion,
+                         Object payload
     ) {
         var client = webClients.get(model);
-
-        var options = getChatCompletionsOptionString();
+        var options = getChatCompletionsOptionString(payload);
 
         return client.post()
                 .uri(uriBuilder -> uriBuilder
                         .path("/openai/deployments/" + deploymentId + "/chat/completions")
                         .queryParam("api-version", apiVersion)
-                        .build()
-                )
+                        .build())
                 .header("api-key", apiKey)
                 .bodyValue(options.getBytes(StandardCharsets.UTF_8))
                 .retrieve()
-                .onStatus(HttpStatusCode::is4xxClientError,
-                        clientResponse -> clientResponse.bodyToMono(String.class)
-                                .flatMap(error -> {
-                                    log.error("4xx error occurred while sending chat completion response: {}", error);
-                                    return Mono.error(new RuntimeException(error));
-                                })
-                )
-                .onStatus(HttpStatusCode::is5xxServerError,
-                        clientResponse -> clientResponse.bodyToMono(String.class)
-                                .flatMap(error -> {
-                                    log.error("5xx error occurred while sending chat completion response: {}", error);
-                                    return Mono.error(new RuntimeException(error));
-                                })
-                )
+                .onStatus(HttpStatusCode::is4xxClientError, clientResponse -> clientResponse.bodyToMono(String.class)
+                        .flatMap(error -> {
+                            log.error("4xx error occurred while sending chat completion response: {}", error);
+                            return Mono.error(new RuntimeException(error));
+                        }))
+                .onStatus(HttpStatusCode::is5xxServerError, clientResponse -> clientResponse.bodyToMono(String.class)
+                        .flatMap(error -> {
+                            log.error("5xx error occurred while sending chat completion response: {}", error);
+                            return Mono.error(new RuntimeException(error));
+                        }))
                 .bodyToFlux(String.class)
                 .filter(response -> !response.equals("[DONE]"))
                 .flatMap(response -> {
                     try {
-                        Object res = new ObjectMapper().readValue(
-                                response, Object.class
-                        );
+                        Object res = new ObjectMapper().readValue(response, Object.class);
                         return Flux.just(res);
                     } catch (Exception e) {
                         return Flux.empty();
                     }
                 });
-
-
     }
 
-    private String getChatCompletionsOptionString() {
-        ChatRequestMessage message = new ChatRequestUserMessage("안녕 ");
-        ChatCompletionsOptions options = new ChatCompletionsOptions(List.of(message));
-
-        ChatCompletionStreamOptions streamOptions = new ChatCompletionStreamOptions()
-                .setIncludeUsage(true);
-
-        ChatCompletionsOptionsAccessHelper.setStream(options, true);
-        ChatCompletionsOptionsAccessHelper.setStreamOptions(options, streamOptions);
-
+    private String getChatCompletionsOptionString(Object payload) {
         try {
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            JsonWriter jsonWriter = JsonProviders.createWriter(outputStream);
-            options.toJson(jsonWriter);
-            jsonWriter.close();
-
-            String jsonString = outputStream.toString(StandardCharsets.UTF_8);
-
-            log.info("ChatCompletionsOptions JSON: {}", jsonString);
-//            var objectMapper = new ObjectMapper();
-//            TypeReference<Map<String, Object>> typeRef = new TypeReference<>() {
-//            };
-//            return objectMapper.readValue(jsonString, typeRef);
-            return jsonString;
+            ObjectMapper objectMapper = new ObjectMapper();
+            if (payload instanceof ChatCompletionsOptions options) {
+                ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                JsonWriter jsonWriter = JsonProviders.createWriter(outputStream);
+                options.toJson(jsonWriter);
+                jsonWriter.close();
+                return outputStream.toString(StandardCharsets.UTF_8);
+            } else if (payload instanceof Map) {
+                String jsonString = objectMapper.writeValueAsString(payload);
+                log.debug("Converted Map to JSON: {}", jsonString);
+                return jsonString;
+            } else {
+                String jsonString = objectMapper.writeValueAsString(payload);
+                log.debug("Serialized Object to JSON: {}", jsonString);
+                return jsonString;
+            }
         } catch (IOException e) {
-            log.error("Failed to serialize ChatCompletionsOptions to JSON", e);
-            throw new RuntimeException(e);
+            log.error("Failed to serialize payload to JSON", e);
+            throw new RuntimeException("Failed to serialize payload to JSON: " + e.getMessage(), e);
         }
     }
 }
