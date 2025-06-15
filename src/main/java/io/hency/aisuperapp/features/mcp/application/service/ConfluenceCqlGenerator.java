@@ -54,8 +54,16 @@ public class ConfluenceCqlGenerator {
 
         // 쿼리가 이미 CQL 형식인지 확인
         if (containsAnyCqlOperator(query)) {
-            logger.info("Query already appears to be CQL, using as-is: {}", query);
-            return query;
+            // 이미 siteSearch 또는 text 연산자가 포함되어 있는지 확인
+            if (query.contains("siteSearch ~") || query.contains("text ~")) {
+                logger.info("Query already contains search operator, using as-is: {}", query);
+                return query;
+            } else {
+                // CQL 형식이지만 검색 연산자가 없는 경우, 전체 쿼리를 siteSearch로 감싸기
+                String cqlQuery = String.format("siteSearch ~ \"%s\"", escapeQuotes(query));
+                logger.info("Converted CQL without search operator to siteSearch: {}", cqlQuery);
+                return cqlQuery;
+            }
         }
 
         // 단순 텍스트 쿼리를 CQL로 변환
@@ -74,7 +82,6 @@ public class ConfluenceCqlGenerator {
         if (query == null || query.trim().isEmpty()) {
             return "";
         }
-
         String cqlQuery = String.format("text ~ \"%s\"", escapeQuotes(query));
         logger.info("Generated fallback CQL using text operator: {}", cqlQuery);
         return cqlQuery;
@@ -84,23 +91,19 @@ public class ConfluenceCqlGenerator {
      * 스페이스 필터를 CQL에 추가
      * 전달된 필터가 없으면 기본 설정 필터를 사용 (설정 기능 추가 시)
      *
-     * @param cql          기존 CQL 쿼리
+     * @param cql         기존 CQL 쿼리
      * @param spacesFilter 쉼표로 구분된 스페이스 키 목록
      * @return 스페이스 필터가 적용된 CQL 쿼리
      */
     public String applySpacesFilter(String cql, String spacesFilter) {
         // 전달된 필터 또는 기본 설정 필터 사용
-        String filterToUse = (spacesFilter != null && !spacesFilter.trim().isEmpty())
-                ? spacesFilter
-                : defaultSpacesFilter;
-
+        String filterToUse = (spacesFilter != null && !spacesFilter.trim().isEmpty()) ? spacesFilter : defaultSpacesFilter;
         if (filterToUse == null || filterToUse.trim().isEmpty()) {
             return cql;
         }
 
         // 스페이스 필터 쿼리 부분 구성
         String[] spaces = filterToUse.split(",");
-
         String spaceQuery = Arrays.stream(spaces)
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
@@ -121,7 +124,6 @@ public class ConfluenceCqlGenerator {
                 return spaceQuery;
             }
         }
-
         return cql;
     }
 
@@ -156,12 +158,10 @@ public class ConfluenceCqlGenerator {
         if (identifier == null || identifier.isEmpty()) {
             return "\"\"";
         }
-
         // 개인 공간 키(~), 공백 포함, 숫자만으로 구성, 쉼표나 따옴표 포함 시 따옴표 필요
         if (NEEDS_QUOTES_PATTERN.matcher(identifier).find()) {
             return "\"" + escapeQuotes(identifier) + "\"";
         }
-
         return identifier;
     }
 
@@ -178,14 +178,13 @@ public class ConfluenceCqlGenerator {
      * 쿼리와 스페이스 필터를 받아 완전한 CQL을 생성하는 단일 메서드
      * Claude에서 받은 JSON 형식의 매개변수를 처리하는 용도로 사용
      *
-     * @param query        검색 쿼리 (단순 텍스트 또는 CQL)
+     * @param query 검색 쿼리 (단순 텍스트 또는 CQL)
      * @param spacesFilter 스페이스 필터 (쉼표로 구분된 스페이스 키 목록)
      * @return 완성된 CQL 쿼리
      */
     public String generateFullCql(String query, String spacesFilter) {
         // 1. 쿼리를 CQL로 변환
         String cql = generateCql(query);
-
         // 2. 스페이스 필터 적용
         return applySpacesFilter(cql, spacesFilter);
     }
@@ -195,7 +194,6 @@ public class ConfluenceCqlGenerator {
      */
     public static void main(String[] args) {
         ConfluenceCqlGenerator generator = new ConfluenceCqlGenerator();
-
         // 설정에서 기본 필터 설정 예시
         generator.setDefaultSpacesFilter("DEFAULT,SPACE");
 
@@ -228,9 +226,8 @@ public class ConfluenceCqlGenerator {
         System.out.println("With complex space names: " + complexFilteredCql);
 
         // Claude에서 받은 매개변수로 CQL 생성
-        String query = "mcp atlassian";
-        String spacesFilter = "my first space, overview";
-
+        String query = "mcp atlassian OR ai";
+        String spacesFilter = "MY FIRST SPACE,OVERVIEW";
         // 단일 메서드 호출로 완성된 CQL 얻기
         String fullCql = generator.generateFullCql(query, spacesFilter);
         System.out.println("Generated CQL: " + fullCql);
