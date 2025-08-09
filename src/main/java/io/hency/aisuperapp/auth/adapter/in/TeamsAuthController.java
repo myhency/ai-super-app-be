@@ -56,6 +56,19 @@ public class TeamsAuthController {
     }
 
     /**
+     * OneDrive 접근 권한이 포함된 Microsoft Teams 인증 URL 조회
+     */
+    @Operation(
+            summary = "OneDrive 접근용 Teams 로그인 URL 조회",
+            description = "OneDrive 접근 권한이 포함된 Microsoft Teams 인증을 위한 로그인 URL을 반환합니다."
+    )
+    @GetMapping("/teams/onedrive-login-url")
+    public Mono<TeamsLoginUrlResponse> retrieveOneDriveLoginUrl() {
+        return teamsLoginUseCase.createOneDriveLoginUrl()
+                .map(TeamsLoginUrlResponse::new);
+    }
+
+    /**
      * MS 인증 콜백 처리
      */
     @Operation(

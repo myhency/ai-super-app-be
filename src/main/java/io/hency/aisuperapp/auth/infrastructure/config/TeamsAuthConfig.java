@@ -29,6 +29,7 @@ public class TeamsAuthConfig {
     private List<String> tenantIds;
     private final String authUrl = "/organizations/oauth2/v2.0/authorize";
     private final String scope = "openid https://graph.microsoft.com/mail.read offline_access";
+    private final String oneDriveScope = "openid https://graph.microsoft.com/mail.read https://graph.microsoft.com/files.readwrite offline_access";
     private final String redirectSegment = "/v1/auth/login";
 
     public Mono<String> generateAuthorizeUrl(
@@ -44,6 +45,24 @@ public class TeamsAuthConfig {
                         .queryParam("redirect_uri", redirectUrl)
                         .queryParam("response_mode", "query")
                         .queryParam("scope", scope)
+                        .queryParam("state", verificationCode)
+                        .build().toString()
+        );
+    }
+
+    public Mono<String> generateOneDriveAuthorizeUrl(
+            String baseUrl,
+            String clientId,
+            String verificationCode,
+            String redirectUrl
+    ) {
+        return Mono.just(
+                UriComponentsBuilder.fromHttpUrl(baseUrl + authUrl)
+                        .queryParam("client_id", clientId)
+                        .queryParam("response_type", "code")
+                        .queryParam("redirect_uri", redirectUrl)
+                        .queryParam("response_mode", "query")
+                        .queryParam("scope", oneDriveScope)
                         .queryParam("state", verificationCode)
                         .build().toString()
         );

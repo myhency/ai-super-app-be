@@ -41,6 +41,23 @@ public class TeamsLoginService implements TeamsLoginUseCase {
     }
 
     @Override
+    public Mono<String> createOneDriveLoginUrl() {
+        String verificationCode = UlidCreator.getMonotonicUlid().toString();
+        String redirectUrl = teamsAuthConfig.getServerUrl() + teamsAuthConfig.getRedirectSegment();
+        return teamsAuthConfig.generateOneDriveAuthorizeUrl(
+                        teamsAuthConfig.getBaseAuthUrl(),
+                        teamsAuthConfig.getClientId(),
+                        verificationCode,
+                        redirectUrl
+                )
+                .flatMap(authorizeUrl -> teamsAuthPort
+                        .saveVerificationCode(verificationCode)
+                        .subscribeOn(Schedulers.boundedElastic())
+                        .thenReturn(authorizeUrl)
+                );
+    }
+
+    @Override
     public Mono<String> login(String code, String verificationCode) {
         return teamsAuthPort.findVerificationCode(verificationCode)
                 .switchIfEmpty(Mono.error(new UnauthorizedException(ErrorCode.H401A)))
