@@ -3,6 +3,7 @@ package io.hmg.claude.messages.adapter.out;
 import io.hmg.claude.messages.application.port.out.ClaudeMessagesPort;
 import io.hmg.claude.messages.application.vo.ClaudeModel;
 import io.hmg.claude.messages.infrastructure.config.ClaudeProperties;
+import io.hmg.claude.messages.infrastructure.external.ClaudeCodeMessagesClient;
 import io.hmg.claude.messages.infrastructure.external.ClaudeMessagesClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,7 @@ public class ClaudeMessagesAdapter implements ClaudeMessagesPort {
 
     private final ClaudeMessagesClient client;
     private final ClaudeProperties properties;
+    private final ClaudeCodeMessagesClient _client;
 
     @Override
     public Flux<?> sendChat(Object payload, ClaudeModel model) {
@@ -26,7 +28,7 @@ public class ClaudeMessagesAdapter implements ClaudeMessagesPort {
                 .findFirst()
                 .orElseThrow();
 
-        return client.sendChat(payload, resource)
+        return _client.sendChat(payload, resource)
                 .onErrorResume(Flux::error);
     }
 }

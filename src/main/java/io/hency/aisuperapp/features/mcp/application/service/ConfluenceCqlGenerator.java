@@ -1,5 +1,6 @@
 package io.hency.aisuperapp.features.mcp.application.service;
 
+import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,6 +18,7 @@ import java.util.stream.Collectors;
  * }
  * 위와 같이 input 이 들어올 수 있음
  */
+@Setter
 public class ConfluenceCqlGenerator {
     private static final Logger logger = LoggerFactory.getLogger(ConfluenceCqlGenerator.class);
 
@@ -28,6 +30,12 @@ public class ConfluenceCqlGenerator {
     // CQL 식별자에 따옴표가 필요한지 확인하는 정규식
     private static final Pattern NEEDS_QUOTES_PATTERN = Pattern.compile("[\\s~]|^\\d+$|[,\"]");
 
+    /**
+     * -- SETTER --
+     *  설정에서 가져온 기본 스페이스 필터 설정
+     *
+     * @param defaultSpacesFilter 기본 스페이스 필터
+     */
     // 설정에서 가져올 기본 스페이스 필터 (설정 기능 추가 시 사용)
     private String defaultSpacesFilter;
 
@@ -163,15 +171,6 @@ public class ConfluenceCqlGenerator {
             return "\"" + escapeQuotes(identifier) + "\"";
         }
         return identifier;
-    }
-
-    /**
-     * 설정에서 가져온 기본 스페이스 필터 설정
-     *
-     * @param defaultSpacesFilter 기본 스페이스 필터
-     */
-    public void setDefaultSpacesFilter(String defaultSpacesFilter) {
-        this.defaultSpacesFilter = defaultSpacesFilter;
     }
 
     /**

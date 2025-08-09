@@ -8,6 +8,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -17,13 +20,18 @@ public class ChatCompletionService implements ChatCompletionUseCase {
 
     @Override
     public Flux<?> chatCompletion(Object payload, ChatCompletionModel model) {
-        Flux<?> result = chatCompletionPort.sendChat(payload, model)
-                .cache();
+        List<Object> items = new ArrayList<>();
 
-        return result.collectList()
-                .doOnNext(list -> {
-                    log.info("Send chat completion result: {}", list);
+        return chatCompletionPort.sendChat(payload, model)
+                .doOnNext(item -> {
+                    items.add(item);
+                    log.debug("Received item: {}", item);
                 })
-                .thenMany(result);
+                .doOnComplete(() -> {
+                    log.info("Send chat completion result: {}", items);
+                })
+                .doOnError(error -> {
+                    log.error("Chat completion error: {}", error.getMessage());
+                });
     }
 }

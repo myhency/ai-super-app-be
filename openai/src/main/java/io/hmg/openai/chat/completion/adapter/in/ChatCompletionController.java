@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
@@ -19,11 +20,13 @@ public class ChatCompletionController {
 
     private final ChatCompletionUseCase chatCompletionUseCase;
 
-    @PostMapping(value = "/openai/deployments/{model}/chat/completions")
+    @PostMapping(
+            value = "/openai/deployments/{model}/chat/completions",
+            produces = {MediaType.TEXT_EVENT_STREAM_VALUE, MediaType.APPLICATION_JSON_VALUE}
+    )
     public Object chatCompletions(
             @PathVariable("model") String model,
-            @Valid @RequestBody ChatCompletionRequest request,
-            ServerHttpResponse response
+            @Valid @RequestBody ChatCompletionRequest request
     ) {
         try {
             log.info("Send chat completion request: {}", request);
@@ -41,10 +44,8 @@ public class ChatCompletionController {
                     });
 
             if (request.getStream()) {
-                response.getHeaders().setContentType(MediaType.TEXT_EVENT_STREAM);
                 return result;
             } else {
-                response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
                 return result.next();
             }
 
