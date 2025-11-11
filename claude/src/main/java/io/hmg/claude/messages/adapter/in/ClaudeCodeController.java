@@ -29,7 +29,7 @@ public class ClaudeCodeController {
             ServerHttpResponse response
     ) {
         try {
-            log.info("Claude messages request: {} \n", request.toString());
+//            log.info("Claude messages request: {} \n", request.toString());
             var model = ClaudeModel.fromName(request.getModel());
             Object payload = request.toPayload();
 

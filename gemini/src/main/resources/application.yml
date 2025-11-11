@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: gemini
+
+server:
+  port: 8083

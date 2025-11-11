@@ -1,3 +1,4 @@
 rootProject.name = 'ai-super-app'
 include 'openai'
 include 'claude'
+include 'gemini'

@@ -1,0 +1,23 @@
+{
+  "name": "sse-chat-demo",
+  "version": "1.0.0",
+  "description": "Multi-Topic SSE Chat Demo with Web Workers",
+  "main": "public/index.html",
+  "scripts": {
+    "start": "npx serve public -p 3002 -s",
+    "dev": "npx serve public -p 3002 -s",
+    "serve": "npx serve public -p 3002 -s"
+  },
+  "keywords": [
+    "sse",
+    "web-worker",
+    "react",
+    "chat",
+    "streaming"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "serve": "^14.0.0"
+  }
+}

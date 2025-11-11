@@ -1,0 +1,1703 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Topic SSE Chat Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .chat-manager {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .chat-header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .worker-status {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .active-count {
+            color: #ffeb3b;
+            font-weight: bold;
+        }
+
+        .chat-layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Topic Sidebar */
+        .topic-sidebar {
+            width: 300px;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .topic-list-header {
+            padding: 1rem;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .topic-list-header h2 {
+            font-size: 1.1rem;
+            color: #333;
+        }
+
+        .create-topic-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .create-topic-btn:hover {
+            background: #45a049;
+        }
+
+        .topic-items {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem;
+        }
+
+        .topic-item {
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .topic-item:hover {
+            background: #f0f0f0;
+            border-color: #ccc;
+        }
+
+        .topic-item.selected {
+            background: #e3f2fd;
+            border-color: #2196F3;
+        }
+
+        .topic-item.active {
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.3);
+        }
+
+        .topic-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .topic-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-icon {
+            font-size: 1.2rem;
+        }
+
+        .topic-name {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .delete-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+        }
+
+        .delete-btn:hover {
+            background: #d32f2f;
+        }
+
+        .topic-info {
+            font-size: 0.8rem;
+            color: #666;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.25rem;
+        }
+
+        .activity-indicator {
+            margin-top: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            background: rgba(76, 175, 80, 0.1);
+            border-radius: 4px;
+            font-size: 0.8rem;
+            color: #4CAF50;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .pulse {
+            width: 8px;
+            height: 8px;
+            background: #4CAF50;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        /* Chat Main */
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+
+        .chat-room {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-room-header {
+            padding: 1rem;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+        }
+
+        .topic-info h2 {
+            font-size: 1.2rem;
+            color: #333;
+            margin-bottom: 0.25rem;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .active-badge {
+            background: #4CAF50;
+            color: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+        }
+
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            background: #f9f9f9;
+        }
+
+        .welcome-message {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        .welcome-message h3 {
+            margin-bottom: 1rem;
+            color: #333;
+        }
+
+        .example-messages {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .example-message {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+        }
+
+        .example-message:hover {
+            background: #f0f0f0;
+            border-color: #2196F3;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border-radius: 12px;
+            max-width: 80%;
+        }
+
+        .message.user {
+            background: #2196F3;
+            color: white;
+            margin-left: auto;
+        }
+
+        .message.assistant {
+            background: white;
+            border: 1px solid #e0e0e0;
+        }
+
+        .message.error {
+            background: #ffebee;
+            border: 1px solid #f44336;
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .role-badge {
+            font-weight: bold;
+        }
+
+        .timestamp {
+            opacity: 0.7;
+        }
+
+        .streaming-indicator .dots {
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        .message-content {
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        .message-input-form {
+            padding: 1rem;
+            border-top: 1px solid #e0e0e0;
+            background: white;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 24px;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .message-input:focus {
+            border-color: #2196F3;
+        }
+
+        .send-button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 24px;
+            cursor: pointer;
+            font-size: 1rem;
+            min-width: 80px;
+        }
+
+        .send-button:hover:not(:disabled) {
+            background: #1976D2;
+        }
+
+        .send-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .input-hints {
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+            color: #666;
+            text-align: center;
+        }
+
+        .background-notification {
+            background: rgba(76, 175, 80, 0.1);
+            border: 1px solid #4CAF50;
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin: 1rem;
+            font-size: 0.9rem;
+            color: #2E7D32;
+        }
+
+        /* Background Activity */
+        .background-activity {
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            padding: 1rem 2rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .background-activity h3 {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        .background-topics {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .background-topic {
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .background-topic:hover {
+            background: #e0e0e0;
+            border-color: #2196F3;
+        }
+
+        .background-topic.status-connected {
+            border-color: #4CAF50;
+            background: rgba(76, 175, 80, 0.1);
+        }
+
+        .status-indicator {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .no-topic {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            color: #666;
+        }
+
+        .no-topic button {
+            margin-top: 1rem;
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .loading-spinner {
+            animation: spin 1s infinite linear;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Token Settings */
+        .token-settings {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .token-input-container {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            margin-top: 0.5rem;
+        }
+        
+        .token-input {
+            flex: 1;
+            padding: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+        
+        .token-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .token-input:focus {
+            outline: none;
+            border-color: #ffeb3b;
+        }
+        
+        .token-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        
+        .token-btn:hover {
+            background: #45a049;
+        }
+        
+        .token-btn.clear {
+            background: #f44336;
+        }
+        
+        .token-btn.clear:hover {
+            background: #d32f2f;
+        }
+        
+        .token-status {
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+        
+        .token-status.valid {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+        }
+        
+        .token-status.invalid {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+        }
+        
+        .token-status.empty {
+            background: rgba(255, 235, 59, 0.2);
+            color: #FBC02D;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="loading">앱을 로딩 중...</div>
+    </div>
+
+    <!-- React 개발용 CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- 모든 컴포넌트를 인라인으로 로드 -->
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+        
+        // ULID 생성 함수 (ULID 스펙 준수)
+        function generateULID() {
+          // Crockford's Base32 인코딩 문자셋 (I, L, O, U 제외)
+          const ENCODING = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+          
+          // 현재 시간 (Unix Epoch 기준 밀리초)
+          const timestamp = Date.now();
+          
+          // 48비트 타임스탬프를 Crockford's Base32로 인코딩 (10자리)
+          let timeStr = '';
+          let time = timestamp;
+          for (let i = 0; i < 10; i++) {
+            timeStr = ENCODING[time % 32] + timeStr;
+            time = Math.floor(time / 32);
+          }
+          
+          // 80비트 랜덤 데이터 생성 (crypto API 사용)
+          let randomStr = '';
+          if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+            // 10바이트 (80비트) 랜덤 데이터 생성
+            const randomBytes = new Uint8Array(10);
+            crypto.getRandomValues(randomBytes);
+            
+            // 바이트를 Crockford's Base32로 인코딩 (16자리)
+            let randomBits = '';
+            for (let i = 0; i < randomBytes.length; i++) {
+              randomBits += randomBytes[i].toString(2).padStart(8, '0');
+            }
+            
+            // 5비트씩 잘라서 Base32 인코딩
+            for (let i = 0; i < 80; i += 5) {
+              const chunk = randomBits.substr(i, 5);
+              const index = parseInt(chunk, 2);
+              randomStr += ENCODING[index];
+            }
+          } else {
+            // crypto API가 없는 경우 Math.random() 사용 (fallback)
+            for (let i = 0; i < 16; i++) {
+              randomStr += ENCODING[Math.floor(Math.random() * 32)];
+            }
+          }
+          
+          // 26자리 ULID 반환 (10자리 타임스탬프 + 16자리 랜덤)
+          return timeStr + randomStr;
+        }
+        
+        // JWT 토큰 관리 Hook
+        function useAuthToken() {
+          const [token, setToken] = useState(() => {
+            return localStorage.getItem('jwt_token') || '';
+          });
+          
+          const [tokenStatus, setTokenStatus] = useState('empty');
+          
+          useEffect(() => {
+            validateToken(token);
+          }, [token]);
+          
+          const validateToken = (tokenValue) => {
+            if (!tokenValue) {
+              setTokenStatus('empty');
+              return;
+            }
+            
+            try {
+              // JWT 구조 검증 (헤더.페이로드.시그니처)
+              const parts = tokenValue.split('.');
+              if (parts.length !== 3) {
+                setTokenStatus('invalid');
+                return;
+              }
+              
+              // 페이로드 디코딩 시도
+              const payload = JSON.parse(atob(parts[1]));
+              
+              // 만료 시간 체크
+              if (payload.exp && payload.exp * 1000 < Date.now()) {
+                setTokenStatus('expired');
+                return;
+              }
+              
+              setTokenStatus('valid');
+            } catch (error) {
+              console.error('토큰 검증 실패:', error);
+              setTokenStatus('invalid');
+            }
+          };
+          
+          const updateToken = (newToken) => {
+            setToken(newToken);
+            if (newToken) {
+              localStorage.setItem('jwt_token', newToken);
+            } else {
+              localStorage.removeItem('jwt_token');
+            }
+          };
+          
+          const clearToken = () => {
+            setToken('');
+            localStorage.removeItem('jwt_token');
+          };
+          
+          const getAuthHeaders = () => {
+            if (token && tokenStatus === 'valid') {
+              return {
+                'Authorization': `Bearer ${token}`
+              };
+            }
+            return {};
+          };
+          
+          return {
+            token,
+            tokenStatus,
+            updateToken,
+            clearToken,
+            getAuthHeaders,
+            isTokenValid: tokenStatus === 'valid'
+          };
+        }
+        
+        // useSSEWorker Hook
+        function useSSEWorker() {
+          const [worker, setWorker] = useState(null);
+          const [activeTopics, setActiveTopics] = useState(new Set());
+          const [connectionStatus, setConnectionStatus] = useState({});
+          const messageHandlers = useRef(new Map());
+          const [isWorkerReady, setIsWorkerReady] = useState(false);
+          
+          useEffect(() => {
+            console.log('SSE Worker 초기화 시작');
+            
+            const sseWorker = new Worker('/sse-worker.js');
+            
+            sseWorker.onmessage = (e) => {
+              const { type, topicId, data, error, timestamp } = e.data;
+              console.log(`Worker 메시지 수신: ${type}`, { topicId, data });
+              
+              switch(type) {
+                case 'CONNECTION_OPENED':
+                  setConnectionStatus(prev => ({
+                    ...prev,
+                    [topicId]: 'connected'
+                  }));
+                  break;
+                  
+                case 'MESSAGE':
+                case 'CHUNK':
+                  const handler = messageHandlers.current.get(topicId);
+                  if (handler) {
+                    handler(data);
+                  } else {
+                    console.warn(`핸들러가 없는 topic: ${topicId}`);
+                  }
+                  break;
+                  
+                case 'COMPLETE':
+                  console.log(`스트림 완료: ${topicId} at ${timestamp}`);
+                  
+                  showCompletionNotification(topicId);
+                  
+                  setActiveTopics(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(topicId);
+                    return newSet;
+                  });
+                  
+                  setConnectionStatus(prev => ({
+                    ...prev,
+                    [topicId]: 'completed'
+                  }));
+                  
+                  messageHandlers.current.delete(topicId);
+                  break;
+                  
+                case 'CONNECTION_CLOSED':
+                  setConnectionStatus(prev => ({
+                    ...prev,
+                    [topicId]: 'closed'
+                  }));
+                  break;
+                  
+                case 'RECONNECTING':
+                  setConnectionStatus(prev => ({
+                    ...prev,
+                    [topicId]: 'reconnecting'
+                  }));
+                  break;
+                  
+                case 'ERROR':
+                  console.error(`SSE 에러: ${topicId}`, error);
+                  setConnectionStatus(prev => ({
+                    ...prev,
+                    [topicId]: 'error'
+                  }));
+                  
+                  const errorHandler = messageHandlers.current.get(`${topicId}_error`);
+                  if (errorHandler) {
+                    errorHandler(error);
+                  }
+                  break;
+                  
+                case 'WORKER_ERROR':
+                  console.error('Worker 에러:', error);
+                  break;
+                  
+                default:
+                  console.log(`처리되지 않은 메시지 타입: ${type}`);
+              }
+            };
+            
+            sseWorker.onerror = (error) => {
+              console.error('Worker 에러:', error);
+              setIsWorkerReady(false);
+            };
+            
+            setWorker(sseWorker);
+            setIsWorkerReady(true);
+            
+            requestNotificationPermission();
+            
+            return () => {
+              console.log('Worker 정리 시작');
+              if (sseWorker) {
+                sseWorker.postMessage({ type: 'CLOSE_ALL' });
+                sseWorker.terminate();
+              }
+              setIsWorkerReady(false);
+            };
+          }, []);
+          
+          const requestNotificationPermission = async () => {
+            if ('Notification' in window && Notification.permission === 'default') {
+              try {
+                const permission = await Notification.requestPermission();
+                console.log('알림 권한:', permission);
+              } catch (error) {
+                console.error('알림 권한 요청 실패:', error);
+              }
+            }
+          };
+          
+          const showCompletionNotification = (topicId) => {
+            if ('Notification' in window && Notification.permission === 'granted') {
+              const notification = new Notification('AI 응답 완료', {
+                body: `대화 ${topicId}의 응답이 완료되었습니다. 클릭하여 확인하세요.`,
+                icon: '/chat-icon.png',
+                tag: topicId,
+                requireInteraction: true
+              });
+              
+              notification.onclick = () => {
+                window.focus();
+                window.location.hash = `#/chat/${topicId}`;
+                notification.close();
+              };
+              
+              setTimeout(() => {
+                notification.close();
+              }, 5000);
+            }
+          };
+          
+          const startSSE = useCallback((topicId, onMessage, onError, authHeaders = {}) => {
+            if (!worker || !isWorkerReady) {
+              console.warn('Worker가 준비되지 않음');
+              return false;
+            }
+            
+            if (activeTopics.has(topicId)) {
+              console.log(`Topic ${topicId} 이미 활성화됨`);
+              return false;
+            }
+            
+            console.log(`SSE 시작: ${topicId}`);
+            
+            if (onMessage) {
+              messageHandlers.current.set(topicId, onMessage);
+            }
+            
+            if (onError) {
+              messageHandlers.current.set(`${topicId}_error`, onError);
+            }
+            
+            const url = `http://localhost:8080/v1/chat?topicId=${topicId}`;
+            worker.postMessage({
+              type: 'START_SSE',
+              topicId,
+              url,
+              headers: authHeaders
+            });
+            
+            setActiveTopics(prev => new Set([...prev, topicId]));
+            setConnectionStatus(prev => ({
+              ...prev,
+              [topicId]: 'connecting'
+            }));
+            
+            return true;
+          }, [worker, isWorkerReady, activeTopics]);
+          
+          const stopSSE = useCallback((topicId) => {
+            if (!worker) return;
+            
+            console.log(`SSE 중지: ${topicId}`);
+            
+            worker.postMessage({
+              type: 'CLOSE_SSE',
+              topicId
+            });
+            
+            setActiveTopics(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(topicId);
+              return newSet;
+            });
+            
+            setConnectionStatus(prev => ({
+              ...prev,
+              [topicId]: 'stopped'
+            }));
+            
+            messageHandlers.current.delete(topicId);
+            messageHandlers.current.delete(`${topicId}_error`);
+          }, [worker]);
+          
+          const stopAllSSE = useCallback(() => {
+            if (!worker) return;
+            
+            console.log('모든 SSE 연결 중지');
+            
+            worker.postMessage({ type: 'CLOSE_ALL' });
+            
+            setActiveTopics(new Set());
+            setConnectionStatus({});
+            messageHandlers.current.clear();
+          }, [worker]);
+          
+          const getTopicStatus = useCallback((topicId) => {
+            return connectionStatus[topicId] || 'disconnected';
+          }, [connectionStatus]);
+          
+          return { 
+            startSSE, 
+            stopSSE,
+            stopAllSSE,
+            activeTopics: Array.from(activeTopics),
+            connectionStatus,
+            getTopicStatus,
+            isWorkerReady,
+            worker
+          };
+        }
+        
+        // TopicList 컴포넌트
+        function TopicList({ 
+          topics, 
+          currentTopicId, 
+          activeTopics, 
+          connectionStatus,
+          onSelectTopic, 
+          onCreateTopic, 
+          onDeleteTopic 
+        }) {
+          
+          const getStatusIcon = (topicId) => {
+            const status = connectionStatus[topicId];
+            const isActive = activeTopics.includes(topicId);
+            
+            switch(status) {
+              case 'connecting': return '🔄';
+              case 'connected': return '🟢';
+              case 'reconnecting': return '🟡';
+              case 'error': return '🔴';
+              case 'completed': return '✅';
+              case 'closed':
+              case 'stopped': return '⚫';
+              default: return isActive ? '🟢' : '⚪';
+            }
+          };
+          
+          const getStatusText = (topicId) => {
+            const status = connectionStatus[topicId];
+            const isActive = activeTopics.includes(topicId);
+            
+            if (isActive) {
+              switch(status) {
+                case 'connecting': return '연결 중...';
+                case 'connected': return '응답 대기';
+                case 'reconnecting': return '재연결 중...';
+                case 'error': return '에러 발생';
+                case 'completed': return '응답 완료';
+                default: return '활성';
+              }
+            }
+            
+            return status === 'completed' ? '완료됨' : '대기';
+          };
+
+          return React.createElement('div', { className: 'topic-list' },
+            React.createElement('div', { className: 'topic-list-header' },
+              React.createElement('h2', null, '대화 목록'),
+              React.createElement('button', {
+                className: 'create-topic-btn',
+                onClick: onCreateTopic,
+                title: '새 대화 시작'
+              }, '+ 새 대화')
+            ),
+            
+            React.createElement('div', { className: 'topic-items' },
+              topics.map(topic => {
+                const isSelected = topic.id === currentTopicId;
+                const isActive = activeTopics.includes(topic.id);
+                
+                return React.createElement('div', {
+                  key: topic.id,
+                  className: `topic-item ${isSelected ? 'selected' : ''} ${isActive ? 'active' : ''}`,
+                  onClick: () => onSelectTopic(topic.id)
+                },
+                  React.createElement('div', { className: 'topic-header' },
+                    React.createElement('div', { className: 'topic-status' },
+                      React.createElement('span', { className: 'status-icon' }, getStatusIcon(topic.id)),
+                      React.createElement('span', { className: 'topic-name' }, topic.name)
+                    ),
+                    React.createElement('button', {
+                      className: 'delete-btn',
+                      onClick: (e) => {
+                        e.stopPropagation();
+                        onDeleteTopic(topic.id);
+                      },
+                      title: '대화 삭제'
+                    }, '×')
+                  ),
+                  
+                  React.createElement('div', { className: 'topic-info' },
+                    React.createElement('div', { className: 'topic-id' }, `ID: ${topic.id.slice(-8)}`),
+                    React.createElement('div', { className: 'topic-status-text' }, getStatusText(topic.id)),
+                    React.createElement('div', { className: 'topic-time' }, new Date(topic.createdAt).toLocaleTimeString())
+                  ),
+                  
+                  isActive && React.createElement('div', { className: 'activity-indicator' },
+                    React.createElement('div', { className: 'pulse' }),
+                    '백그라운드 실행 중'
+                  )
+                );
+              })
+            ),
+            
+            topics.length === 0 && React.createElement('div', { className: 'empty-topics' },
+              React.createElement('p', null, '아직 대화가 없습니다.'),
+              React.createElement('button', { onClick: onCreateTopic }, '첫 번째 대화 시작하기')
+            ),
+            
+            React.createElement('div', { className: 'topic-list-footer' },
+              React.createElement('div', { className: 'summary' },
+                `총 ${topics.length}개 대화`,
+                activeTopics.length > 0 && React.createElement('span', { className: 'active-summary' }, 
+                  `(${activeTopics.length}개 활성)`
+                )
+              )
+            )
+          );
+        }
+        
+        // ChatRoom 컴포넌트
+        function ChatRoom({ 
+          topicId, 
+          messages, 
+          onSendMessage, 
+          connectionStatus,
+          isActive 
+        }) {
+          const [inputValue, setInputValue] = useState('');
+          const [isLoading, setIsLoading] = useState(false);
+          const messagesEndRef = useRef(null);
+          const inputRef = useRef(null);
+          
+          useEffect(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+          }, [messages]);
+          
+          useEffect(() => {
+            inputRef.current?.focus();
+          }, [topicId]);
+          
+          const handleSubmit = async (e) => {
+            e.preventDefault();
+            
+            const content = inputValue.trim();
+            if (!content) return;
+            
+            setIsLoading(true);
+            setInputValue('');
+            
+            try {
+              await onSendMessage(content);
+            } catch (error) {
+              console.error('메시지 전송 실패:', error);
+            } finally {
+              setIsLoading(false);
+            }
+          };
+          
+          const getConnectionStatusText = () => {
+            switch(connectionStatus) {
+              case 'connecting': return '연결 중...';
+              case 'connected': return '연결됨';
+              case 'reconnecting': return '재연결 중...';
+              case 'error': return '연결 오류';
+              case 'completed': return '응답 완료';
+              case 'closed':
+              case 'stopped': return '연결 종료';
+              default: return '대기 중';
+            }
+          };
+          
+          const getConnectionStatusColor = () => {
+            switch(connectionStatus) {
+              case 'connected': return '#4CAF50';
+              case 'connecting':
+              case 'reconnecting': return '#FF9800';
+              case 'error': return '#F44336';
+              case 'completed': return '#2196F3';
+              default: return '#9E9E9E';
+            }
+          };
+          
+          const formatTimestamp = (timestamp) => {
+            return new Date(timestamp).toLocaleTimeString();
+          };
+          
+          const getExampleMessages = () => {
+            return [
+              "안녕하세요! 어떻게 도와드릴까요?",
+              "오늘 날씨는 어떤가요?", 
+              "JavaScript에 대해 설명해주세요",
+              "재미있는 농담 하나 해주세요",
+              "React Hook의 장점은 무엇인가요?"
+            ];
+          };
+
+          return React.createElement('div', { className: 'chat-room' },
+            React.createElement('div', { className: 'chat-room-header' },
+              React.createElement('div', { className: 'topic-info' },
+                React.createElement('h2', null, `대화: ${topicId.slice(-8)}`),
+                React.createElement('div', { className: 'connection-status' },
+                  React.createElement('span', {
+                    className: 'status-dot',
+                    style: { backgroundColor: getConnectionStatusColor() }
+                  }),
+                  getConnectionStatusText(),
+                  isActive && React.createElement('span', { className: 'active-badge' }, '실행 중')
+                )
+              ),
+              React.createElement('div', { className: 'chat-stats' },
+                React.createElement('span', null, `메시지: ${messages.length}`)
+              )
+            ),
+            
+            React.createElement('div', { className: 'messages-container' },
+              messages.length === 0 && React.createElement('div', { className: 'welcome-message' },
+                React.createElement('h3', null, '새로운 대화를 시작하세요!'),
+                React.createElement('p', null, '아래 예시 메시지를 클릭하거나 직접 입력해보세요:'),
+                React.createElement('div', { className: 'example-messages' },
+                  getExampleMessages().map((example, index) =>
+                    React.createElement('button', {
+                      key: index,
+                      className: 'example-message',
+                      onClick: () => setInputValue(example),
+                      disabled: isLoading
+                    }, example)
+                  )
+                )
+              ),
+              
+              messages.map(message =>
+                React.createElement('div', {
+                  key: message.id,
+                  className: `message ${message.role} ${message.error ? 'error' : ''}`
+                },
+                  React.createElement('div', { className: 'message-header' },
+                    React.createElement('span', { className: 'role-badge' },
+                      message.role === 'user' ? '👤 사용자' : '🤖 AI'
+                    ),
+                    React.createElement('span', { className: 'timestamp' },
+                      formatTimestamp(message.timestamp)
+                    ),
+                    !message.completed && React.createElement('span', { className: 'streaming-indicator' },
+                      React.createElement('span', { className: 'dots' }, '...')
+                    )
+                  ),
+                  
+                  React.createElement('div', { className: 'message-content' }, message.content),
+                  
+                  message.error && React.createElement('div', { className: 'error-info' },
+                    '⚠️ 메시지 전송 중 오류가 발생했습니다.'
+                  )
+                )
+              ),
+              
+              React.createElement('div', { ref: messagesEndRef })
+            ),
+            
+            React.createElement('form', { className: 'message-input-form', onSubmit: handleSubmit },
+              React.createElement('div', { className: 'input-container' },
+                React.createElement('input', {
+                  ref: inputRef,
+                  type: 'text',
+                  value: inputValue,
+                  onChange: (e) => setInputValue(e.target.value),
+                  placeholder: isLoading 
+                    ? "메시지 전송 중..." 
+                    : connectionStatus === 'error'
+                    ? "연결 오류 - 재시도하세요"
+                    : "메시지를 입력하세요...",
+                  disabled: isLoading,
+                  className: 'message-input'
+                }),
+                
+                React.createElement('button', {
+                  type: 'submit',
+                  disabled: isLoading || !inputValue.trim(),
+                  className: 'send-button'
+                }, isLoading 
+                  ? React.createElement('span', { className: 'loading-spinner' }, '⏳')
+                  : '전송'
+                )
+              ),
+              
+              React.createElement('div', { className: 'input-hints' },
+                React.createElement('span', { className: 'hint' },
+                  'Enter를 눌러 전송 • ' + (isActive ? ' 백그라운드에서 응답 수신 중' : ' 대기 상태')
+                )
+              )
+            ),
+            
+            isActive && connectionStatus === 'connected' && React.createElement('div', { className: 'background-notification' },
+              '🔄 이 대화는 백그라운드에서 실행됩니다. 다른 페이지로 이동해도 응답 완료 시 알림을 받을 수 있습니다.'
+            )
+          );
+        }
+        
+        // TokenSettings 컴포넌트
+        function TokenSettings() {
+          const { token, tokenStatus, updateToken, clearToken, isTokenValid } = useAuthToken();
+          const [inputToken, setInputToken] = useState('');
+          const [showToken, setShowToken] = useState(false);
+          
+          const handleSaveToken = () => {
+            updateToken(inputToken.trim());
+            setInputToken('');
+          };
+          
+          const handleClearToken = () => {
+            clearToken();
+            setInputToken('');
+          };
+          
+          const getStatusMessage = () => {
+            switch(tokenStatus) {
+              case 'valid': return '✅ 유효한 토큰';
+              case 'invalid': return '❌ 잘못된 토큰 형식';
+              case 'expired': return '⏰ 만료된 토큰';
+              case 'empty': return '⚠️ 토큰이 필요합니다';
+              default: return '❓ 알 수 없는 상태';
+            }
+          };
+          
+          return React.createElement('div', { className: 'token-settings' },
+            React.createElement('div', null, '🔐 JWT 인증 토큰'),
+            
+            React.createElement('div', { className: 'token-input-container' },
+              React.createElement('input', {
+                type: showToken ? 'text' : 'password',
+                value: inputToken || token,
+                onChange: (e) => setInputToken(e.target.value),
+                placeholder: token ? '새 토큰 입력...' : 'JWT 토큰을 입력하세요',
+                className: 'token-input'
+              }),
+              
+              React.createElement('button', {
+                type: 'button',
+                onClick: () => setShowToken(!showToken),
+                className: 'token-btn',
+                title: showToken ? '토큰 숨기기' : '토큰 보기'
+              }, showToken ? '👁️' : '🙈'),
+              
+              React.createElement('button', {
+                type: 'button',
+                onClick: handleSaveToken,
+                disabled: !inputToken.trim(),
+                className: 'token-btn'
+              }, '저장'),
+              
+              token && React.createElement('button', {
+                type: 'button',
+                onClick: handleClearToken,
+                className: 'token-btn clear'
+              }, '삭제')
+            ),
+            
+            React.createElement('div', {
+              className: `token-status ${tokenStatus}`
+            }, getStatusMessage())
+          );
+        }
+        
+        // ChatManager 컴포넌트
+        function ChatManager() {
+          const { 
+            startSSE, 
+            stopSSE, 
+            activeTopics, 
+            connectionStatus, 
+            getTopicStatus,
+            isWorkerReady 
+          } = useSSEWorker();
+          
+          const { getAuthHeaders, isTokenValid } = useAuthToken();
+          
+          const [currentTopicId, setCurrentTopicId] = useState(null);
+          const [topics, setTopics] = useState([]);
+          const [chatHistory, setChatHistory] = useState({});
+          
+          const createNewTopic = () => {
+            const newTopicId = generateULID();
+            
+            setTopics(prev => [...prev, {
+              id: newTopicId,
+              name: `대화 ${topics.length + 1}`,
+              createdAt: new Date().toISOString(),
+              status: 'created'
+            }]);
+            
+            setChatHistory(prev => ({
+              ...prev,
+              [newTopicId]: []
+            }));
+            
+            setCurrentTopicId(newTopicId);
+            
+            return newTopicId;
+          };
+          
+          const selectTopic = (topicId) => {
+            setCurrentTopicId(topicId);
+          };
+          
+          const sendMessage = async (topicId, content) => {
+            if (!isTokenValid) {
+              alert('⚠️ JWT 토큰을 먼저 설정해주세요. 상단의 토큰 설정에서 유효한 토큰을 입력하세요.');
+              return;
+            }
+            
+            // 사용자 메시지 추가
+            setChatHistory(prev => ({
+              ...prev,
+              [topicId]: [
+                ...(prev[topicId] || []),
+                {
+                  id: Date.now(),
+                  role: 'user',
+                  content,
+                  timestamp: new Date().toISOString(),
+                  completed: true
+                }
+              ]
+            }));
+            
+            // AI 응답 메시지 준비
+            const aiMessageId = Date.now() + 1;
+            setChatHistory(prev => ({
+              ...prev,
+              [topicId]: [
+                ...prev[topicId],
+                {
+                  id: aiMessageId,
+                  role: 'assistant',
+                  content: '',
+                  timestamp: new Date().toISOString(),
+                  completed: false
+                }
+              ]
+            }));
+            
+            const handleStreamMessage = (data) => {
+              setChatHistory(prev => ({
+                ...prev,
+                [topicId]: prev[topicId].map(msg => 
+                  msg.id === aiMessageId 
+                    ? { ...msg, content: msg.content + (data.content || data.text || JSON.stringify(data)) }
+                    : msg
+                )
+              }));
+            };
+            
+            const handleStreamComplete = () => {
+              setChatHistory(prev => ({
+                ...prev,
+                [topicId]: prev[topicId].map(msg => 
+                  msg.id === aiMessageId 
+                    ? { ...msg, completed: true }
+                    : msg
+                )
+              }));
+            };
+            
+            const handleError = (error) => {
+              setChatHistory(prev => ({
+                ...prev,
+                [topicId]: prev[topicId].map(msg => 
+                  msg.id === aiMessageId 
+                    ? { ...msg, content: `에러 발생: ${error}`, completed: true, error: true }
+                    : msg
+                )
+              }));
+            };
+            
+            // POST 요청으로 직접 SSE 처리
+            await sendMessageWithSSE(topicId, content, handleStreamMessage, handleStreamComplete, handleError);
+          };
+          
+          const sendMessageWithSSE = async (topicId, content, handleStreamMessage, handleStreamComplete, handleError) => {
+            console.log(`서버에 메시지 전송: ${topicId}`, content);
+            
+            try {
+              const authHeaders = getAuthHeaders();
+              
+              console.log('인증 헤더:', authHeaders);
+              console.log('토큰 유효성:', isTokenValid);
+              
+              // 첫 대화인지 확인 (메시지가 없으면 첫 대화)
+              const isFirstMessage = !chatHistory[topicId] || chatHistory[topicId].length === 0;
+              
+              // ChatRequest.SendMessageRequest 형식에 맞게 수정 (첫 대화시 topicId null)
+              const requestBody = {
+                userChatId: generateULID(),
+                aiChatId: generateULID(),
+                topicId: isFirstMessage ? null : topicId,  // 첫 대화는 null, 이후는 topicId
+                parentId: null,
+                previousMessages: [],
+                content: content,
+                contents: null
+              };
+              
+              console.log('요청 본문:', requestBody);
+              
+              const response = await fetch('http://localhost:8080/v1/chat', {
+                method: 'POST',
+                headers: { 
+                  'Content-Type': 'application/json',
+                  'Accept': 'text/event-stream',
+                  ...authHeaders
+                },
+                body: JSON.stringify(requestBody)
+              });
+              
+              if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+              }
+              
+              console.log('메시지 전송 성공, SSE 스트림 시작:', response.status);
+              
+              // SSE 스트림 처리
+              const reader = response.body.getReader();
+              const decoder = new TextDecoder();
+              
+              try {
+                while (true) {
+                  const { done, value } = await reader.read();
+                  if (done) break;
+                  
+                  const chunk = decoder.decode(value);
+                  const lines = chunk.split('\n');
+                  
+                  for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                      const data = line.slice(6);
+                      if (data.trim() === '[DONE]') {
+                        console.log('SSE 스트림 완료');
+                        handleStreamComplete();
+                        return;
+                      }
+                      
+                      try {
+                        const parsed = JSON.parse(data);
+                        handleStreamMessage(parsed);
+                      } catch (e) {
+                        // JSON이 아닌 텍스트 데이터
+                        handleStreamMessage({ content: data });
+                      }
+                    }
+                  }
+                }
+                
+                // 정상적으로 스트림이 종료된 경우
+                handleStreamComplete();
+                
+              } finally {
+                reader.releaseLock();
+              }
+              
+            } catch (error) {
+              console.error('메시지 전송 실패:', error);
+              handleError(error.message);
+            }
+          };
+          
+          const simulateServerRequest = async (topicId, content, handleStreamMessage, handleError) => {
+            console.log(`서버에 메시지 전송: ${topicId}`, content);
+            
+            try {
+              const authHeaders = getAuthHeaders();
+              
+              console.log('인증 헤더:', authHeaders);
+              console.log('토큰 유효성:', isTokenValid);
+              
+              // ChatRequest.SendMessageRequest 형식에 맞게 수정 (topicId 필드명 수정)
+              const requestBody = {
+                userChatId: generateULID(),
+                aiChatId: generateULID(),
+                topicId: topicId,
+                parentId: null,
+                previousMessages: [],
+                content: content,
+                contents: null
+              };
+              
+              console.log('요청 본문:', requestBody);
+              
+              const response = await fetch('http://localhost:8080/v1/chat', {
+                method: 'POST',
+                headers: { 
+                  'Content-Type': 'application/json',
+                  'Accept': 'text/event-stream',
+                  ...authHeaders
+                },
+                body: JSON.stringify(requestBody)
+              });
+              
+              if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+              }
+              
+              console.log('메시지 전송 성공, SSE 스트림 시작:', response.status);
+              
+              // SSE 스트림 처리
+              const reader = response.body.getReader();
+              const decoder = new TextDecoder();
+              
+              try {
+                while (true) {
+                  const { done, value } = await reader.read();
+                  if (done) break;
+                  
+                  const chunk = decoder.decode(value);
+                  const lines = chunk.split('\n');
+                  
+                  for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                      const data = line.slice(6);
+                      if (data.trim() === '[DONE]') {
+                        console.log('SSE 스트림 완료');
+                        return;
+                      }
+                      
+                      try {
+                        const parsed = JSON.parse(data);
+                        handleStreamMessage(parsed);
+                      } catch (e) {
+                        // JSON이 아닌 텍스트 데이터
+                        handleStreamMessage({ content: data });
+                      }
+                    }
+                  }
+                }
+              } finally {
+                reader.releaseLock();
+              }
+              
+            } catch (error) {
+              console.error('메시지 전송 실패:', error);
+              handleError(error.message);
+            }
+          };
+          
+          const deleteTopic = (topicId) => {
+            stopSSE(topicId);
+            
+            setTopics(prev => prev.filter(topic => topic.id !== topicId));
+            
+            setChatHistory(prev => {
+              const newHistory = { ...prev };
+              delete newHistory[topicId];
+              return newHistory;
+            });
+            
+            if (currentTopicId === topicId) {
+              const remainingTopics = topics.filter(topic => topic.id !== topicId);
+              setCurrentTopicId(remainingTopics.length > 0 ? remainingTopics[0].id : null);
+            }
+          };
+          
+          useEffect(() => {
+            if (topics.length === 0) {
+              createNewTopic();
+            }
+          }, []);
+          
+          return React.createElement('div', { className: 'chat-manager' },
+            React.createElement('div', { className: 'chat-header' },
+              React.createElement('h1', null, 'Multi-Topic Chat with Background SSE'),
+              React.createElement('div', { className: 'worker-status' },
+                `Worker 상태: ${isWorkerReady ? '✅ 준비됨' : '❌ 준비 중...'}`,
+                activeTopics.length > 0 && React.createElement('span', { className: 'active-count' },
+                  ` | 활성 대화: ${activeTopics.length}개`
+                )
+              ),
+              React.createElement(TokenSettings)
+            ),
+            
+            React.createElement('div', { className: 'chat-layout' },
+              React.createElement('div', { className: 'topic-sidebar' },
+                React.createElement(TopicList, {
+                  topics,
+                  currentTopicId,
+                  activeTopics,
+                  connectionStatus,
+                  onSelectTopic: selectTopic,
+                  onCreateTopic: createNewTopic,
+                  onDeleteTopic: deleteTopic
+                })
+              ),
+              
+              React.createElement('div', { className: 'chat-main' },
+                currentTopicId 
+                  ? React.createElement(ChatRoom, {
+                      topicId: currentTopicId,
+                      messages: chatHistory[currentTopicId] || [],
+                      onSendMessage: (content) => sendMessage(currentTopicId, content),
+                      connectionStatus: getTopicStatus(currentTopicId),
+                      isActive: activeTopics.includes(currentTopicId)
+                    })
+                  : React.createElement('div', { className: 'no-topic' },
+                      React.createElement('p', null, '대화를 시작하려면 새 Topic을 생성하세요.'),
+                      React.createElement('button', { onClick: createNewTopic }, '새 대화 시작')
+                    )
+              )
+            ),
+            
+            activeTopics.length > 1 && React.createElement('div', { className: 'background-activity' },
+              React.createElement('h3', null, '백그라운드 대화 진행 중:'),
+              React.createElement('div', { className: 'background-topics' },
+                activeTopics
+                  .filter(topicId => topicId !== currentTopicId)
+                  .map(topicId => {
+                    const topic = topics.find(t => t.id === topicId);
+                    const status = getTopicStatus(topicId);
+                    return React.createElement('div', {
+                      key: topicId,
+                      className: `background-topic status-${status}`,
+                      onClick: () => selectTopic(topicId)
+                    },
+                      React.createElement('span', null, topic?.name || topicId),
+                      React.createElement('span', { className: 'status-indicator' }, status)
+                    );
+                  })
+              )
+            )
+          );
+        }
+        
+        function App() {
+            const [error, setError] = useState(null);
+            
+            useEffect(() => {
+                // 서비스 워커 호환성 체크
+                if (!window.Worker) {
+                    setError('이 브라우저는 Web Worker를 지원하지 않습니다.');
+                    return;
+                }
+                
+                // 알림 API 호환성 체크
+                if (!('Notification' in window)) {
+                    console.warn('이 브라우저는 알림 API를 지원하지 않습니다.');
+                }
+                
+                console.log('앱이 성공적으로 로드되었습니다.');
+            }, []);
+            
+            if (error) {
+                return (
+                    <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'center', 
+                        alignItems: 'center', 
+                        height: '100vh',
+                        flexDirection: 'column',
+                        color: '#f44336'
+                    }}>
+                        <h2>앱 로드 오류</h2>
+                        <p>{error}</p>
+                        <button onClick={() => window.location.reload()}>
+                            페이지 새로고침
+                        </button>
+                    </div>
+                );
+            }
+            
+            return React.createElement(ChatManager);
+        }
+        
+        // 앱 렌더링
+        const root = ReactDOM.createRoot(document.getElementById('app'));
+        root.render(React.createElement(App));
+        
+        // 글로벌 에러 핸들링
+        window.addEventListener('error', (e) => {
+            console.error('글로벌 에러:', e.error);
+        });
+        
+        window.addEventListener('unhandledrejection', (e) => {
+            console.error('처리되지 않은 Promise 거부:', e.reason);
+        });
+        
+        console.log('Multi-Topic SSE Chat Demo가 시작되었습니다.');
+    </script>
+</body>
+</html>

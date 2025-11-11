@@ -24,9 +24,10 @@ public class ClaudeMessagesService implements ClaudeMessagesUseCase {
                 .doOnComplete(() -> {
                     result.collectList()
                             .subscribeOn(Schedulers.boundedElastic())
-                            .subscribe(
-                                    fullResponseList -> log.info("Full chat result for claude messages: {}", fullResponseList)
-                            );
+//                            .subscribe(
+//                                    fullResponseList -> log.info("Full chat result for claude messages: {}", fullResponseList)
+//                            );
+                            .subscribe();
                 });
     }
 }

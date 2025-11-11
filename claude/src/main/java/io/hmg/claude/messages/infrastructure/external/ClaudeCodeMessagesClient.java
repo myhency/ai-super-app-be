@@ -58,7 +58,7 @@ public class ClaudeCodeMessagesClient {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             String payloadJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(payload);
-            log.info("Sending payload to Claude API:\n{}", payloadJson);
+//            log.info("Sending payload to Claude API:\n{}", payloadJson);
         } catch (JsonProcessingException e) {
             log.error("Failed to serialize payload for logging: {}", e.getMessage());
         }
@@ -100,7 +100,7 @@ public class ClaudeCodeMessagesClient {
                     .createScoped(Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
             credentials.refreshIfExpired();
             var accessToken = credentials.getAccessToken().getTokenValue();
-            log.info("GCP Access Token: {}", accessToken);
+//            log.info("GCP Access Token: {}", accessToken);
             return accessToken;
         } catch (IOException e) {
             throw new RuntimeException(e);

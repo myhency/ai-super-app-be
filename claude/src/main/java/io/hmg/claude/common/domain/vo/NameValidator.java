@@ -7,7 +7,7 @@ public class NameValidator {
                 return constant;
             }
         }
-        throw new RuntimeException();
+        throw new RuntimeException("name is :" + name);
     }
 
     public interface Name {
