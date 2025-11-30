@@ -9,7 +9,7 @@ import io.hency.aisuperapp.features.newchat.application.domain.entity.Message;
 import io.hency.aisuperapp.features.newchat.application.domain.entity.SendChatCommand;
 import io.hency.aisuperapp.features.newchat.application.domain.enums.ChatRoleType;
 import io.hency.aisuperapp.features.newchat.application.port.out.ChatPort;
-import io.hency.aisuperapp.features.newchat.infrastructure.repository.ChatRepository;
+import io.hency.aisuperapp.features.newchat.infrastructure.repository.NewChatRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -27,9 +27,9 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class ChatAdapter implements ChatPort {
+public class NewChatAdapter implements ChatPort {
     private final ChatClient chatClient;
-    private final ChatRepository chatRepository;
+    private final NewChatRepository chatRepository;
 
     @Override
     public Flux<Message> sendChat(List<Message> sendMessages) {
@@ -80,14 +80,13 @@ public class ChatAdapter implements ChatPort {
                 .then();
     }
 
-    private Mono<ChatEntity> saveChat(Ulid aiChatId, Ulid userId, Ulid topicId, Ulid parentChatId, ChatRoleType role, String content) {
+    private Mono<ChatEntity> saveChat(Ulid aiChatId, Ulid userId, Ulid topicId, Ulid parentChatId, ChatRoleType role,
+            String content) {
         return Mono.justOrEmpty(parentChatId)
                 .flatMap(ulid -> findChatByParentChatId(ulid)
-                        .switchIfEmpty(Mono.error(new ChatNotFoundException(ErrorCode.H400A)))
-                )
-                .map(parentChatEntity ->
-                        ChatEntity.of(aiChatId, topicId, parentChatEntity.getUlid(), role, content, userId)
-                )
+                        .switchIfEmpty(Mono.error(new ChatNotFoundException(ErrorCode.H400A))))
+                .map(parentChatEntity -> ChatEntity.of(aiChatId, topicId, parentChatEntity.getUlid(), role, content,
+                        userId))
                 .switchIfEmpty(Mono.just(ChatEntity.of(aiChatId, topicId, null, role, content, userId)))
                 .flatMap(chatRepository::save)
                 .onErrorResume(error -> {

@@ -15,7 +15,7 @@ import reactor.core.publisher.Flux;
 @Repository
 @Slf4j
 @RequiredArgsConstructor
-public class ChatRepositoryImpl implements ChatPaginationRepository {
+public class NewChatRepositoryImpl implements NewChatPaginationRepository {
     private final R2dbcEntityTemplate r2dbcEntityTemplate;
 
     @Override

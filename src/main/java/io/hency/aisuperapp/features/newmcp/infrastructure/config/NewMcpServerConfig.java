@@ -18,18 +18,18 @@ import org.springframework.context.annotation.Configuration;
  *
  * application.yml에서 설정 가능:
  * spring:
- *   ai:
- *     mcp:
- *       server:
- *         name: "ai-super-app-newmcp-server"
- *         version: "2.0.0"
- *         type: ASYNC
- *         sse-endpoint: "/newmcp/sse"
- *         sse-message-endpoint: "/newmcp/message"
+ * ai:
+ * mcp:
+ * server:
+ * name: "ai-super-app-newmcp-server"
+ * version: "2.0.0"
+ * type: ASYNC
+ * sse-endpoint: "/newmcp/sse"
+ * sse-message-endpoint: "/newmcp/message"
  */
 @Slf4j
 @Configuration
-public class McpServerConfig {
+public class NewMcpServerConfig {
 
     /**
      * Calculator 도구를 MCP 도구로 등록

@@ -23,7 +23,7 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ChatService implements ChatUseCase {
+public class NewChatService implements ChatUseCase {
     private static final String DEFAULT_SYSTEM_PROMPT = "사용자가 정보를 찾는 데 도움이 되는 AI 도우미입니다.";
     private final ChatPort chatPort;
 
@@ -35,16 +35,13 @@ public class ChatService implements ChatUseCase {
         Flux<Message> sendChatFlux = chatPort.sendChat(messages).cache();
 
         return chatPort.saveUserChat(sendChatCommand)
-                .flatMapMany(chatEntity ->
-                        saveAiChat(chatEntity, sendChatFlux, aiChatId, userId)
-                                .flatMapMany(messageFlux ->
-                                        buildChat(sendChatCommand, chatEntity, messageFlux)
-                                )
-                );
+                .flatMapMany(chatEntity -> saveAiChat(chatEntity, sendChatFlux, aiChatId, userId)
+                        .flatMapMany(messageFlux -> buildChat(sendChatCommand, chatEntity, messageFlux)));
     }
 
     @Override
-    public Flux<Chat> reSend(Ulid chatUlid, Ulid aiChatUlid, Ulid userId, String tenantId, List<Message> previousMessages, String systemPrompt) {
+    public Flux<Chat> reSend(Ulid chatUlid, Ulid aiChatUlid, Ulid userId, String tenantId,
+            List<Message> previousMessages, String systemPrompt) {
         return null;
     }
 
@@ -54,7 +51,8 @@ public class ChatService implements ChatUseCase {
                 .map(tuple -> chat(tuple, sendChatCommand));
     }
 
-    private Mono<Flux<Message>> saveAiChat(ChatEntity chatEntity, Flux<Message> sendChatFlux, Ulid aiChatId, Ulid userId) {
+    private Mono<Flux<Message>> saveAiChat(ChatEntity chatEntity, Flux<Message> sendChatFlux, Ulid aiChatId,
+            Ulid userId) {
         return Mono.deferContextual(ctx -> {
             chatPort.saveAiChat(sendChatFlux, chatEntity, aiChatId, userId)
                     .contextWrite(ctx)

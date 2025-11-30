@@ -35,8 +35,9 @@ dependencies {
     // for mac silicon
     implementation 'io.netty:netty-resolver-dns-native-macos:4.1.72.Final:osx-aarch_64'
 
-    // google auth
-    implementation 'com.google.auth:google-auth-library-oauth2-http:1.33.1'
+    // AWS SDK for Bedrock
+    implementation 'software.amazon.awssdk:auth:2.21.0'
+    implementation 'software.amazon.awssdk:regions:2.21.0'
 }
 
 tasks.named('test') {

@@ -70,8 +70,8 @@ dependencies {
     // r2dbc
     implementation 'io.asyncer:r2dbc-mysql:1.1.0'
 
-    // mcp
-    implementation 'io.modelcontextprotocol.sdk:mcp-spring-webflux:0.8.1'
+    // mcp - disabled legacy dependency, using Spring AI's MCP autoconfiguration instead
+    // implementation 'io.modelcontextprotocol.sdk:mcp-spring-webflux:0.8.1'
 
     // google auth
     implementation 'com.google.auth:google-auth-library-oauth2-http:1.33.1'

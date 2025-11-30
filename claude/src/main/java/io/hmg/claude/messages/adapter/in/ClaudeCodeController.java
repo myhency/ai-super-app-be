@@ -45,6 +45,7 @@ public class ClaudeCodeController {
 
             if (request.isStream()) {
                 response.getHeaders().setContentType(MediaType.TEXT_EVENT_STREAM);
+                // Just return the result - Spring will handle SSE formatting
                 return result;
             } else {
                 response.getHeaders().setContentType(MediaType.APPLICATION_JSON);

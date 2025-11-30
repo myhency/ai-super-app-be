@@ -13,7 +13,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
-import org.springframework.stereotype.Component;
+// import org.springframework.stereotype.Component;  // Disabled - authentication removed
 import org.springframework.util.PathMatcher;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilterChain;
@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Slf4j
-@Component
+//@Component  // Disabled authentication for all APIs
 @Order(99)
 public class AuthWebFilter extends BaseAuthWebFilter {
     private final TeamsAuthUseCase teamsAuthUseCase;

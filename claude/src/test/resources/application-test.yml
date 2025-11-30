@@ -1,0 +1,18 @@
+spring:
+  config:
+    import:
+      - client/gcp-anthropic.yml
+
+external:
+  gcp:
+    credentials:
+      location: classpath:test-credentials.json
+  anthropic:
+    claude:
+      sonnet:
+        resources:
+          - model: claude-3-5-sonnet-v2
+            location: us-east5
+            api-version: 20241022
+            project-id: test-project
+            anthropic-version: vertex-2023-10-16

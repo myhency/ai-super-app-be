@@ -53,3 +53,8 @@ out/
 /claude/src/main/resources/**
 
 /frontend-demo/node_modules/**
+
+### Environment Variables ###
+.env
+.env.local
+.env.*.local

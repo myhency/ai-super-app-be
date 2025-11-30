@@ -5,6 +5,6 @@ import io.hency.aisuperapp.common.domain.enums.SliceDirection;
 import io.hency.aisuperapp.features.newchat.application.domain.entity.ChatEntity;
 import reactor.core.publisher.Flux;
 
-public interface ChatPaginationRepository {
+public interface NewChatPaginationRepository {
     Flux<ChatEntity> findPagedChats(Ulid topicId, Ulid baseId, SliceDirection sliceDirection, int size);
 }
