@@ -52,14 +52,14 @@ public class ChatController {
     @PostMapping("/messages")
     public Mono<MessageResponse> sendMessage(@Valid @RequestBody SendMessageRequest request) {
         log.info("Sending message to thread: {}", request.getThreadId());
-        return chatUseCase.sendMessage(request.getThreadId(), request.getContent(), request.getStream(), request.getFileIds())
+        return chatUseCase.sendMessage(request.getThreadId(), request.getContent(), request.getStream(), request.getFileIds(), request.getMcpTools())
                 .map(MessageResponse::from);
     }
 
     @PostMapping(value = "/messages/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<StreamChunkResponse> sendMessageStream(@Valid @RequestBody SendMessageRequest request) {
         log.info("Sending streaming message to thread: {}", request.getThreadId());
-        return chatUseCase.sendMessageStream(request.getThreadId(), request.getContent(), request.getFileIds())
+        return chatUseCase.sendMessageStream(request.getThreadId(), request.getContent(), request.getFileIds(), request.getMcpTools())
                 .map(StreamChunkResponse::chunk)
                 .concatWith(Flux.just(StreamChunkResponse.done()));
     }

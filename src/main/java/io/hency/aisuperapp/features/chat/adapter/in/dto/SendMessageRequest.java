@@ -22,4 +22,6 @@ public class SendMessageRequest {
     private Boolean stream = false;
 
     private List<Long> fileIds;
+
+    private List<String> mcpTools; // MCP 서버 이름 목록 (예: ["fetch", "puppeteer"])
 }

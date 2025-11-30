@@ -17,7 +17,7 @@ public interface ChatUseCase {
 
     Flux<Message> getThreadMessages(Long threadId);
 
-    Mono<Message> sendMessage(Long threadId, String content, Boolean stream, List<Long> fileIds);
+    Mono<Message> sendMessage(Long threadId, String content, Boolean stream, List<Long> fileIds, List<String> mcpTools);
 
-    Flux<String> sendMessageStream(Long threadId, String content, List<Long> fileIds);
+    Flux<String> sendMessageStream(Long threadId, String content, List<Long> fileIds, List<String> mcpTools);
 }

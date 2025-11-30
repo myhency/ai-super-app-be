@@ -23,6 +23,7 @@ public class ClaudeLlmAdapter implements LlmPort {
     private final ObjectMapper objectMapper;
 
     private static final String CLAUDE_API_URL = "http://localhost:8082/v1/messages";
+    private static final int MAX_TOOL_ITERATIONS = 5; // tool_use 순환 최대 횟수
 
     @Override
     public Mono<String> sendMessage(String modelName, List<Map<String, Object>> messages, Integer maxTokens) {
@@ -108,5 +109,65 @@ public class ClaudeLlmAdapter implements LlmPort {
                 .doOnNext(text -> log.debug("Emitting text chunk: {}", text))
                 .doOnComplete(() -> log.debug("Claude streaming completed"))
                 .doOnError(error -> log.error("Error in Claude streaming: {}", error.getMessage()));
+    }
+
+    @Override
+    public Mono<Map<String, Object>> sendMessageWithTools(String modelName, List<Map<String, Object>> messages, Integer maxTokens, List<Map<String, Object>> tools) {
+        log.info("sendMessageWithTools called with model: {}, messages count: {}, tools count: {}", modelName, messages.size(), tools.size());
+        log.debug("Tools being sent to Claude: {}", tools);
+
+        Map<String, Object> request = Map.of(
+                "model", modelName,
+                "messages", messages,
+                "max_tokens", maxTokens,
+                "tools", tools,
+                "stream", false
+        );
+
+        return webClientBuilder.build()
+                .post()
+                .uri(CLAUDE_API_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
+                .doOnSuccess(response -> log.info("Successfully received Claude response with tools"))
+                .doOnError(error -> log.error("Error calling Claude API with tools: {}", error.getMessage()));
+    }
+
+    @Override
+    public Flux<Map<String, Object>> sendMessageStreamWithTools(String modelName, List<Map<String, Object>> messages, Integer maxTokens, List<Map<String, Object>> tools) {
+        log.info("sendMessageStreamWithTools called with model: {}, messages count: {}, tools count: {}", modelName, messages.size(), tools.size());
+
+        Map<String, Object> request = Map.of(
+                "model", modelName,
+                "messages", messages,
+                "max_tokens", maxTokens,
+                "tools", tools,
+                "stream", true
+        );
+
+        return webClientBuilder.build()
+                .post()
+                .uri(CLAUDE_API_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.TEXT_EVENT_STREAM)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToFlux(String.class)
+                .doOnNext(chunk -> log.debug("Raw chunk: {}", chunk))
+                .map(chunk -> {
+                    try {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> event = objectMapper.readValue(chunk, Map.class);
+                        return event;
+                    } catch (Exception e) {
+                        log.warn("Failed to parse JSON chunk: {}", e.getMessage());
+                        return Map.<String, Object>of();
+                    }
+                })
+                .filter(event -> !event.isEmpty())
+                .doOnComplete(() -> log.debug("Claude streaming with tools completed"))
+                .doOnError(error -> log.error("Error in Claude streaming with tools: {}", error.getMessage()));
     }
 }
