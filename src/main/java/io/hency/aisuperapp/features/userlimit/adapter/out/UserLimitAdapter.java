@@ -1,6 +1,6 @@
 package io.hency.aisuperapp.features.userlimit.adapter.out;
 
-import io.hency.aisuperapp.auth.application.domain.vo.AccessType;
+// import io.hency.aisuperapp.auth.application.domain.vo.AccessType; // Removed with auth module
 import io.hency.aisuperapp.features.user.application.domain.entity.User;
 import io.hency.aisuperapp.features.userlimit.application.port.out.UserLimitPort;
 import io.hency.aisuperapp.features.userlimit.application.domain.entity.UserLimitEntity;
@@ -17,7 +17,7 @@ public class UserLimitAdapter implements UserLimitPort {
     private final UserLimitRepository userLimitRepository;
 
     @Override
-    public Mono<UserLimitEntity> upsertUserAccessType(User user, AccessType accessType) {
+    public Mono<UserLimitEntity> upsertUserAccessType(User user, String accessType) {
         return userLimitRepository.findByUserKey(user.userKey())
                 .flatMap(userLimitEntity -> {
                     userLimitEntity.setAccessType(accessType);
@@ -26,7 +26,7 @@ public class UserLimitAdapter implements UserLimitPort {
                 .switchIfEmpty(createNewUserLimit(user, accessType));
     }
 
-    private Mono<UserLimitEntity> createNewUserLimit(User user, AccessType accessType) {
+    private Mono<UserLimitEntity> createNewUserLimit(User user, String accessType) {
         UserLimitEntity userLimitEntity = new UserLimitEntity(user.id(), user.userKey(), accessType);
         return userLimitRepository.save(userLimitEntity);
     }

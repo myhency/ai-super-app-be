@@ -1,6 +1,5 @@
 package io.hency.aisuperapp.features.chat.application.domain.entity;
 
-import io.hency.aisuperapp.features.chat.application.domain.vo.MessageRole;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,24 +14,27 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table("messages")
-public class Message {
+@Table("chat_threads")
+public class ChatThread {
 
     @Id
     private Long id;
 
-    @Column("thread_id")
-    private Long threadId;
+    @Column("user_id")
+    private Long userId;
 
-    @Column("role")
-    private MessageRole role;
+    @Column("title")
+    private String title;
 
-    @Column("content")
-    private String content;
-
-    @Column("token_count")
-    private Integer tokenCount;
+    @Column("model_name")
+    private String modelName;
 
     @Column("created_at")
     private LocalDateTime createdAt;
+
+    @Column("updated_at")
+    private LocalDateTime updatedAt;
+
+    @Column("is_deleted")
+    private Boolean isDeleted;
 }

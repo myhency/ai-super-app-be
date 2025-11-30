@@ -70,6 +70,11 @@ dependencies {
     // r2dbc
     implementation 'io.asyncer:r2dbc-mysql:1.1.0'
 
+    // flyway for database migrations
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-mysql'
+    runtimeOnly 'com.mysql:mysql-connector-j'
+
     // mcp - disabled legacy dependency, using Spring AI's MCP autoconfiguration instead
     // implementation 'io.modelcontextprotocol.sdk:mcp-spring-webflux:0.8.1'
 

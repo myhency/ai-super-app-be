@@ -1,6 +1,6 @@
 package io.hency.aisuperapp.features.userlimit.application.domain.entity;
 
-import io.hency.aisuperapp.auth.application.domain.vo.AccessType;
+// import io.hency.aisuperapp.auth.application.domain.vo.AccessType; // Removed with auth module
 import io.hency.aisuperapp.common.domain.entity.BaseDateEntity;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,20 +20,20 @@ public class UserLimitEntity extends BaseDateEntity {
     private String userKey;
     private ZonedDateTime sendChatExpiry;
     @Setter
-    private AccessType accessType;
+    private String accessType; // Changed from AccessType enum (removed with auth module)
 
     public UserLimitEntity(String ulid, String userKey) {
         this.ulid = ulid;
         this.userKey = userKey;
     }
 
-    public UserLimitEntity(String ulid, String userKey, AccessType accessType)  {
+    public UserLimitEntity(String ulid, String userKey, String accessType)  {
         this.ulid = ulid;
         this.userKey = userKey;
         this.accessType = accessType;
     }
 
-    public UserLimitEntity(UserLimitEntity userLimitEntity, AccessType accessType) {
+    public UserLimitEntity(UserLimitEntity userLimitEntity, String accessType) {
         this.ulid = userLimitEntity.getUlid();
         this.userKey = userLimitEntity.getUserKey();
         this.sendChatExpiry = userLimitEntity.getSendChatExpiry();

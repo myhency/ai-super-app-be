@@ -7,7 +7,7 @@ import reactor.core.publisher.Mono;
 
 import java.net.URI;
 
-import static io.hency.aisuperapp.common.infrastructure.config.web.filter.WebFilterConstants.TID;
+// import static io.hency.aisuperapp.common.infrastructure.config.web.filter.WebFilterConstants.TID;
 
 public class HttpUtils {
     public static Mono<Void> redirect(URI uri, ServerHttpResponse response) {
@@ -17,7 +17,8 @@ public class HttpUtils {
     }
 
     public static String extractTenantId(HttpHeaders httpHeaders) {
-        String tenantIdHeader = httpHeaders.getFirst(TID);
+        // TID constant removed with auth module
+        String tenantIdHeader = httpHeaders.getFirst("tid");
 
         if (tenantIdHeader == null || tenantIdHeader.trim().isEmpty()) {
             return "";

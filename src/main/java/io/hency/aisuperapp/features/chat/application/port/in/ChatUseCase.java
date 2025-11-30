@@ -1,14 +1,19 @@
 package io.hency.aisuperapp.features.chat.application.port.in;
 
-import com.github.f4b6a3.ulid.Ulid;
-import io.hency.aisuperapp.features.chat.application.domain.entity.Chat;
+import io.hency.aisuperapp.features.chat.application.domain.entity.ChatThread;
 import io.hency.aisuperapp.features.chat.application.domain.entity.Message;
-import io.hency.aisuperapp.features.chat.application.domain.entity.SendChatCommand;
 import reactor.core.publisher.Flux;
-
-import java.util.List;
+import reactor.core.publisher.Mono;
 
 public interface ChatUseCase {
-    Flux<Chat> send(SendChatCommand sendChatCommand, String systemPrompt);
-    Flux<Chat> reSend(Ulid chatUlid, Ulid aiChatUlid, Ulid userId, String tenantId, List<Message> previousMessages, String systemPrompt);
+
+    Mono<ChatThread> createThread(Long userId, String title, String modelName);
+
+    Mono<ChatThread> getThread(Long threadId);
+
+    Flux<ChatThread> getUserThreads(Long userId);
+
+    Flux<Message> getThreadMessages(Long threadId);
+
+    Mono<Message> sendMessage(Long threadId, String content, Boolean stream);
 }

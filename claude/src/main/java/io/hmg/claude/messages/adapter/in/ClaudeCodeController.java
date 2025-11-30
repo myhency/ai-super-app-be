@@ -1,5 +1,6 @@
 package io.hmg.claude.messages.adapter.in;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.hmg.claude.messages.adapter.in.dto.AnthropicRequest;
 import io.hmg.claude.messages.adapter.in.dto.ClaudeMessagesRequest;
 import io.hmg.claude.messages.application.port.in.ClaudeMessagesUseCase;
@@ -22,6 +23,7 @@ import reactor.core.publisher.Flux;
 public class ClaudeCodeController {
 
     private final ClaudeMessagesUseCase claudeMessagesUseCase;
+    private final ObjectMapper objectMapper;
 
     @PostMapping(value = "/messages")
     public Object messages(
@@ -49,7 +51,18 @@ public class ClaudeCodeController {
                 return result;
             } else {
                 response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
-                return result.next();
+                // Parse JSON string to object to avoid double encoding
+                return result.next().map(chunk -> {
+                    if (chunk instanceof String) {
+                        try {
+                            return objectMapper.readValue((String) chunk, Object.class);
+                        } catch (Exception e) {
+                            log.error("Failed to parse response JSON", e);
+                            return chunk;
+                        }
+                    }
+                    return chunk;
+                });
             }
         } catch (Exception e) {
             throw new RuntimeException(e);

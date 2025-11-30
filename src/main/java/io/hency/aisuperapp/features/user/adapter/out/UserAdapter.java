@@ -5,7 +5,7 @@ import io.hency.aisuperapp.features.user.adapter.out.dto.TeamsUser;
 import io.hency.aisuperapp.features.user.application.port.out.UserPort;
 import io.hency.aisuperapp.features.user.application.domain.entity.User;
 import io.hency.aisuperapp.features.user.application.domain.entity.UserEntity;
-import io.hency.aisuperapp.auth.infrastructure.external.MsGraphApiClient;
+// import io.hency.aisuperapp.auth.infrastructure.external.MsGraphApiClient; // Removed with auth module
 import io.hency.aisuperapp.features.user.infrastructure.cache.UserCacheRepository;
 import io.hency.aisuperapp.features.user.infrastructure.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +23,7 @@ import java.time.Duration;
 public class UserAdapter implements UserPort {
     private static final String KEY_PREFIX = "hmgOcean::user::";
     private final UserCacheRepository userCacheRepository;
-    private final MsGraphApiClient msGraphApiClient;
+    // private final MsGraphApiClient msGraphApiClient; // Removed with auth module
     private final UserRepository userRepository;
 
     @Override
@@ -38,22 +38,8 @@ public class UserAdapter implements UserPort {
 
     @Override
     public Mono<TeamsUser> getTeamsUser(String accessToken) {
-        return msGraphApiClient.getTeamsUser(accessToken)
-                .doOnNext(getTeamsUserResponse -> {
-                    log.debug("getTeamsUserResponse.getUserPrincipalName(): {}", getTeamsUserResponse.getUserPrincipalName());
-                    log.debug("getTeamsUserResponse.getDisplayName(): {}", getTeamsUserResponse.getDisplayName());
-                    log.debug("getTeamsUserResponse.getMail(): {}", getTeamsUserResponse.getMail());
-                })
-                .filter(getTeamsUserResponse ->
-                        StringUtils.hasText(getTeamsUserResponse.getUserPrincipalName())
-                )
-                .map(getTeamsUserResponse ->
-                        new TeamsUser(
-                                getTeamsUserResponse.getId(),
-                                getTeamsUserResponse.getMail(),
-                                getTeamsUserResponse.getUserPrincipalName(),
-                                getTeamsUserResponse.getDisplayName()
-                        ));
+        // MsGraphApiClient removed with auth module
+        return Mono.error(new UnsupportedOperationException("Teams user authentication is disabled"));
     }
 
     @Override

@@ -1,84 +1,137 @@
 package io.hency.aisuperapp.features.chat.application.service;
 
-import com.github.f4b6a3.ulid.Ulid;
-import io.hency.aisuperapp.features.chat.application.port.in.ChatUseCase;
-import io.hency.aisuperapp.features.chat.application.port.out.ChatPort;
-import io.hency.aisuperapp.features.chat.application.domain.entity.Chat;
-import io.hency.aisuperapp.features.chat.application.domain.entity.ChatEntity;
+import io.hency.aisuperapp.features.chat.application.domain.entity.ChatThread;
 import io.hency.aisuperapp.features.chat.application.domain.entity.Message;
-import io.hency.aisuperapp.features.chat.application.domain.entity.SendChatCommand;
+import io.hency.aisuperapp.features.chat.application.domain.vo.MessageRole;
+import io.hency.aisuperapp.features.chat.application.port.in.ChatUseCase;
+import io.hency.aisuperapp.features.chat.application.port.out.LlmPort;
+import io.hency.aisuperapp.features.chat.infrastructure.repository.ChatThreadRepository;
+import io.hency.aisuperapp.features.chat.infrastructure.repository.MessageRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
-import reactor.util.function.Tuple2;
-import reactor.util.function.Tuples;
 
-import java.time.ZonedDateTime;
-import java.util.ArrayList;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatService implements ChatUseCase {
-    private static final String DEFAULT_SYSTEM_PROMPT = "사용자가 정보를 찾는 데 도움이 되는 AI 도우미입니다.";
-    private final ChatPort chatPort;
+
+    private final ChatThreadRepository chatThreadRepository;
+    private final MessageRepository messageRepository;
+    private final LlmPort llmPort;
 
     @Override
-    public Flux<Chat> send(SendChatCommand sendChatCommand, String inputSystemPrompt) {
-        var aiChatId = sendChatCommand.aiChatId();
-        var userId = sendChatCommand.userId();
-        List<Message> messages = createMessages(sendChatCommand, inputSystemPrompt);
-        Flux<Message> sendChatFlux = chatPort.sendChat(messages).cache();
+    public Mono<ChatThread> createThread(Long userId, String title, String modelName) {
+        ChatThread thread = ChatThread.builder()
+                .userId(userId)
+                .title(title)
+                .modelName(modelName)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .isDeleted(false)
+                .build();
 
-        return chatPort.saveUserChat(sendChatCommand)
-                .flatMapMany(chatEntity ->
-                        saveAiChat(chatEntity, sendChatFlux, aiChatId, userId)
-                                .flatMapMany(messageFlux ->
-                                        buildChat(sendChatCommand, chatEntity, messageFlux)
-                                )
-                );
+        return chatThreadRepository.save(thread)
+                .doOnSuccess(t -> log.info("Created chat thread: {}", t.getId()));
     }
 
     @Override
-    public Flux<Chat> reSend(Ulid chatUlid, Ulid aiChatUlid, Ulid userId, String tenantId, List<Message> previousMessages, String systemPrompt) {
-        return null;
+    public Mono<ChatThread> getThread(Long threadId) {
+        log.info("Getting thread: {}", threadId);
+        return chatThreadRepository.findByIdAndIsDeletedFalse(threadId)
+                .doOnNext(thread -> log.info("Thread found: id={}, model={}", thread.getId(), thread.getModelName()))
+                .switchIfEmpty(Mono.defer(() -> {
+                    log.error("Thread not found: {}", threadId);
+                    return Mono.error(new RuntimeException("Thread not found: " + threadId));
+                }));
     }
 
-    private Flux<Chat> buildChat(SendChatCommand sendChatCommand, ChatEntity chatEntity, Flux<Message> messageFlux) {
-        return messageFlux
-                .map(message -> Tuples.of(message, chatEntity.getUlid()))
-                .map(tuple -> chat(tuple, sendChatCommand));
+    @Override
+    public Flux<ChatThread> getUserThreads(Long userId) {
+        return chatThreadRepository.findByUserIdAndIsDeletedFalseOrderByCreatedAtDesc(userId);
     }
 
-    private Mono<Flux<Message>> saveAiChat(ChatEntity chatEntity, Flux<Message> sendChatFlux, Ulid aiChatId, Ulid userId) {
-        return Mono.deferContextual(ctx -> {
-            chatPort.saveAiChat(sendChatFlux, chatEntity, aiChatId, userId)
-                    .contextWrite(ctx)
-                    .subscribeOn(Schedulers.boundedElastic())
-                    .subscribe();
-
-            return Mono.just(sendChatFlux);
-        });
+    @Override
+    public Flux<Message> getThreadMessages(Long threadId) {
+        return messageRepository.findByThreadIdOrderByCreatedAtAsc(threadId);
     }
 
-    private List<Message> createMessages(SendChatCommand command, String inputSystemPrompt) {
-        String systemPrompt = (inputSystemPrompt == null) ? DEFAULT_SYSTEM_PROMPT : inputSystemPrompt;
+    @Override
+    public Mono<Message> sendMessage(Long threadId, String content, Boolean stream) {
+        log.info("sendMessage called: threadId={}, content length={}, stream={}", threadId, content.length(), stream);
+        // Save user message
+        Message userMessage = Message.builder()
+                .threadId(threadId)
+                .role(MessageRole.USER)
+                .content(content)
+                .createdAt(LocalDateTime.now())
+                .build();
 
-        List<Message> messages = new ArrayList<>();
-        messages.add(Message.systemMessage(systemPrompt));
-        messages.addAll(command.previousMessages());
-        messages.add(Message.userMessage(command.content()));
+        return messageRepository.save(userMessage)
+                .doOnSuccess(msg -> log.info("User message saved: id={}", msg.getId()))
+                .flatMap(savedUserMsg -> {
+                    log.info("Getting conversation history for thread: {}", threadId);
+                    // Get conversation history
+                    return getThreadMessages(threadId)
+                            .doOnNext(msg -> log.info("Message in history: id={}, role={}", msg.getId(), msg.getRole()))
+                            .doOnError(err -> log.error("Error fetching messages", err))
+                            .doOnComplete(() -> log.info("Finished fetching messages"))
+                            .collectList()
+                            .doOnSuccess(messages -> log.info("Collected {} messages", messages.size()))
+                            .doOnError(err -> log.error("Error collecting messages", err))
+                            .flatMap(messages -> {
+                                // Get thread to know model name
+                                return getThread(threadId)
+                                        .flatMap(thread -> {
+                                            log.info("Found thread: {}, model: {}", thread.getId(), thread.getModelName());
+                                            // Build messages for LLM
+                                            List<Map<String, String>> llmMessages = messages.stream()
+                                                    .map(msg -> Map.of(
+                                                            "role", msg.getRole().name().toLowerCase(),
+                                                            "content", msg.getContent()
+                                                    ))
+                                                    .collect(Collectors.toList());
+                                            log.info("Built {} messages for LLM", llmMessages.size());
 
-        return messages;
+                                            // Call LLM
+                                            if (Boolean.TRUE.equals(stream)) {
+                                                // For now, we'll just get the first response
+                                                // TODO: Implement proper streaming
+                                                return llmPort.sendMessageStream(thread.getModelName(), llmMessages, 4096)
+                                                        .doOnNext(chunk -> log.debug("Received stream chunk: {}", chunk))
+                                                        .collectList()
+                                                        .doOnSuccess(chunks -> log.debug("Collected {} chunks", chunks.size()))
+                                                        .map(chunks -> {
+                                                            String joined = String.join("", chunks);
+                                                            log.debug("Joined response length: {}, content: {}", joined.length(), joined);
+                                                            return joined;
+                                                        })
+                                                        .flatMap(response -> saveAssistantMessage(threadId, response));
+                                            } else {
+                                                return llmPort.sendMessage(thread.getModelName(), llmMessages, 4096)
+                                                        .flatMap(response -> saveAssistantMessage(threadId, response));
+                                            }
+                                        });
+                            });
+                });
     }
 
-    private Chat chat(Tuple2<Message, Ulid> tuple, SendChatCommand sendChatCommand) {
-        Message message = tuple.getT1();
-        Ulid parentId = tuple.getT2();
-        return Chat.builder().id(sendChatCommand.aiChatId()).topicId(sendChatCommand.topicId()).parentId(parentId).message(message).createdAt(ZonedDateTime.now()).createdBy(sendChatCommand.userId().toString()).updatedAt(ZonedDateTime.now()).updatedBy(sendChatCommand.userId().toString()).build();
+    private Mono<Message> saveAssistantMessage(Long threadId, String content) {
+        Message assistantMessage = Message.builder()
+                .threadId(threadId)
+                .role(MessageRole.ASSISTANT)
+                .content(content)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        return messageRepository.save(assistantMessage)
+                .doOnSuccess(msg -> log.info("Saved assistant message: {}", msg.getId()));
     }
 }

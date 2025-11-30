@@ -46,7 +46,18 @@ public class ClaudeMessagesController {
                 return result;
             } else {
                 response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
-                return result.next();
+                // Parse the JSON string to Map to avoid double-encoding
+                return result.next().map(chunk -> {
+                    if (chunk instanceof String) {
+                        try {
+                            return new com.fasterxml.jackson.databind.ObjectMapper().readValue((String) chunk, Object.class);
+                        } catch (Exception e) {
+                            log.error("Failed to parse response JSON", e);
+                            return chunk;
+                        }
+                    }
+                    return chunk;
+                });
             }
         } catch (Exception e) {
             throw new RuntimeException(e);

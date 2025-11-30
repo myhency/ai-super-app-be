@@ -1,13 +1,14 @@
 package io.hency.aisuperapp.common.infrastructure.config.redis;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.hency.aisuperapp.auth.application.domain.entity.Token;
+// import io.hency.aisuperapp.auth.application.domain.entity.Token; // Removed with auth module
 import io.hency.aisuperapp.features.user.application.domain.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
@@ -32,6 +33,7 @@ public class RedisConfig {
     private String host;
 
     @Bean
+    @Primary
     public ReactiveRedisConnectionFactory reactiveRedisConnectionFactory() {
         return standaloneConnectionFactory();
     }
@@ -49,16 +51,17 @@ public class RedisConfig {
         );
     }
 
-    @Bean(name = "tokenRedisTemplate")
-    @DependsOn("reactiveRedisConnectionFactory")
-    public ReactiveRedisTemplate<String, Token> tokenRedisTemplate(ReactiveRedisConnectionFactory reactiveRedisConnectionFactory, ObjectMapper objectMapper) {
-        var keySerializer = new StringRedisSerializer();
-        var valueSerializer = new Jackson2JsonRedisSerializer<>(objectMapper, Token.class);
-        RedisSerializationContext.RedisSerializationContextBuilder<String, Token> builder =
-                RedisSerializationContext.newSerializationContext(keySerializer);
-        var context = builder.value(valueSerializer).build();
-        return new ReactiveRedisTemplate<>(reactiveRedisConnectionFactory, context);
-    }
+    // Token Redis template removed with auth module
+    // @Bean(name = "tokenRedisTemplate")
+    // @DependsOn("reactiveRedisConnectionFactory")
+    // public ReactiveRedisTemplate<String, Token> tokenRedisTemplate(ReactiveRedisConnectionFactory reactiveRedisConnectionFactory, ObjectMapper objectMapper) {
+    //     var keySerializer = new StringRedisSerializer();
+    //     var valueSerializer = new Jackson2JsonRedisSerializer<>(objectMapper, Token.class);
+    //     RedisSerializationContext.RedisSerializationContextBuilder<String, Token> builder =
+    //             RedisSerializationContext.newSerializationContext(keySerializer);
+    //     var context = builder.value(valueSerializer).build();
+    //     return new ReactiveRedisTemplate<>(reactiveRedisConnectionFactory, context);
+    // }
 
     @Bean(name = "userRedisTemplate")
     @DependsOn("reactiveRedisConnectionFactory")

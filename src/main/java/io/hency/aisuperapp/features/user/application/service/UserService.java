@@ -2,12 +2,12 @@ package io.hency.aisuperapp.features.user.application.service;
 
 import io.hency.aisuperapp.common.error.ErrorCode;
 import io.hency.aisuperapp.common.error.exception.UnauthorizedException;
-import io.hency.aisuperapp.common.util.JwtUtils;
+// import io.hency.aisuperapp.common.util.JwtUtils; // Removed with auth module
 import io.hency.aisuperapp.features.user.adapter.out.dto.TeamsUser;
 import io.hency.aisuperapp.features.user.application.port.in.UserUseCase;
 import io.hency.aisuperapp.features.user.application.port.out.UserPort;
 import io.hency.aisuperapp.features.user.application.domain.entity.User;
-import io.jsonwebtoken.Claims;
+// import io.jsonwebtoken.Claims; // Removed with JWT libs
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,13 +27,9 @@ public class UserService implements UserUseCase {
     }
 
     private Mono<User> createTeamsUser(String accessToken, TeamsUser teamsUser) {
+        // Auth module removed - using default tenant ID
         return Mono.defer(() -> {
-            Claims claims = JwtUtils.parseClaims(accessToken);
-            String tenantId = claims.get("tid") != null ? String.valueOf(claims.get("tid")) : null;
-            if (tenantId == null) {
-                log.error("Tenant ID is missing in JWT claims");
-                return Mono.error(new UnauthorizedException(ErrorCode.H401F));
-            }
+            String tenantId = "default";
             String subscribeId = "a26d67ed-67ae-4b3b-af2c-6a4d3838cc05";
             return userPort.create(tenantId, teamsUser.id(), teamsUser.displayName(), teamsUser.userPrincipalName(), subscribeId);
         });

@@ -1,6 +1,6 @@
 package io.hency.aisuperapp.common.infrastructure.config.web.filter;
 
-import io.jsonwebtoken.lang.Assert;
+import org.springframework.util.Assert;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.server.reactive.ServerHttpRequest;

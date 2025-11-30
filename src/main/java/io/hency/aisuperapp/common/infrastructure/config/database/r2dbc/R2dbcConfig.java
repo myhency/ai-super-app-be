@@ -4,8 +4,10 @@ import io.asyncer.r2dbc.mysql.MySqlConnectionConfiguration;
 import io.asyncer.r2dbc.mysql.MySqlConnectionFactory;
 import io.hency.aisuperapp.features.user.application.domain.entity.User;
 import io.hency.aisuperapp.common.infrastructure.config.database.DatabaseConfig;
+import io.hency.aisuperapp.common.infrastructure.config.database.r2dbc.converter.read.MessageRoleReadConverter;
 import io.hency.aisuperapp.common.infrastructure.config.database.r2dbc.converter.read.UlidReadConverter;
 import io.hency.aisuperapp.common.infrastructure.config.database.r2dbc.converter.read.ZonedDateTimeReadConverter;
+import io.hency.aisuperapp.common.infrastructure.config.database.r2dbc.converter.write.MessageRoleWriteConverter;
 import io.hency.aisuperapp.common.infrastructure.config.database.r2dbc.converter.write.UlidWriteConverter;
 import io.hency.aisuperapp.common.infrastructure.config.database.r2dbc.converter.write.ZonedDateTimeWriteConverter;
 import io.hency.aisuperapp.common.infrastructure.config.web.context.UserContextHolder;
@@ -41,7 +43,7 @@ public class R2dbcConfig extends AbstractR2dbcConfiguration {
     @Override
     public ConnectionFactory connectionFactory() {
         MySqlConnectionConfiguration configuration = MySqlConnectionConfiguration.builder()
-                .serverZoneId(ZoneId.of("Asia/Seoul"))
+                .serverZoneId(ZoneId.of("UTC"))
                 .host(databaseConfig.getHost())
                 .port(databaseConfig.getPort())
                 .username(databaseConfig.getUsername())
@@ -74,7 +76,9 @@ public class R2dbcConfig extends AbstractR2dbcConfiguration {
                 new UlidReadConverter(),
                 new UlidWriteConverter(),
                 new ZonedDateTimeReadConverter(),
-                new ZonedDateTimeWriteConverter()
+                new ZonedDateTimeWriteConverter(),
+                new MessageRoleReadConverter(),
+                new MessageRoleWriteConverter()
         );
     }
 }

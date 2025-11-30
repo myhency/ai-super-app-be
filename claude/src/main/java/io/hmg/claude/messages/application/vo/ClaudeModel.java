@@ -26,6 +26,12 @@ public enum ClaudeModel implements NameValidator.Name {
 
     public static ClaudeModel fromName(String name) {
         log.info("name is {}", name);
-        return NameValidator.fromName(ClaudeModel.class, name);
+        // Map Claude Code model names to Bedrock model names
+        String mappedName = switch (name) {
+            case "claude-haiku-4-5-20251001" -> "anthropic.claude-haiku-4-5-20251001";
+            case "claude-sonnet-4-5-20250929" -> "anthropic.claude-sonnet-4-5-20250929";
+            default -> name;
+        };
+        return NameValidator.fromName(ClaudeModel.class, mappedName);
     }
 }

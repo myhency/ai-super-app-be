@@ -4,8 +4,8 @@ import com.github.f4b6a3.ulid.Ulid;
 import io.hency.aisuperapp.common.constant.SystemPrompt;
 import io.hency.aisuperapp.common.error.ErrorCode;
 import io.hency.aisuperapp.common.error.exception.TopicNotFoundException;
-import io.hency.aisuperapp.features.chat.application.port.out.ChatPort;
-import io.hency.aisuperapp.features.chat.application.domain.entity.Message;
+// import io.hency.aisuperapp.features.chat.application.port.out.ChatPort; // Disabled old chat system
+// import io.hency.aisuperapp.features.chat.application.domain.entity.Message; // Disabled old chat system
 import io.hency.aisuperapp.features.topic.application.port.in.TopicUseCase;
 import io.hency.aisuperapp.features.topic.application.port.out.TopicPort;
 import io.hency.aisuperapp.features.topic.application.domain.entity.Topic;
@@ -22,39 +22,19 @@ import java.util.stream.Collectors;
 
 @Service
 @Slf4j
-@RequiredArgsConstructor
+// @RequiredArgsConstructor // Commented out due to disabled ChatPort
 public class TopicService implements TopicUseCase {
     private final TopicPort topicPort;
-    private final ChatPort chatPort;
+    // private final ChatPort chatPort; // Disabled old chat system
+
+    public TopicService(TopicPort topicPort) {
+        this.topicPort = topicPort;
+    }
 
     @Override
     public Mono<Topic> generate(Ulid topicId, Ulid userId) {
-        Mono<TopicEntity> topicEntityMono = topicPort.findTopicByTopicIdAndUserId(topicId, userId)
-                .switchIfEmpty(Mono.error(new TopicNotFoundException(ErrorCode.H400A)))
-                .cache();
-
-        Flux<Message> summarizeTopicFlux = topicEntityMono
-                .flatMapMany(topicEntity -> chatPort.findFirstChatByTopicId(topicEntity.getUlid())
-                        .flatMapMany(chat -> {
-                            List<Message> messages = this.createMessages(chat.message().content());
-                            return chatPort.sendChat(messages);
-                        }));
-
-        var topic = summarizeTopicFlux
-                .collectList()
-                .map(messages -> messages.stream()
-                        .map(Message::content)
-                        .collect(Collectors.joining()));
-
-        return topic
-                .zipWith(topicEntityMono)
-                .flatMap(tuple -> {
-                    var topicEntity = tuple.getT2();
-                    String summarizedContent = tuple.getT1();
-                    topicEntity.updateTitle(summarizedContent);
-                    return topicPort.save(topicEntity);
-                })
-                .map(Topic::of);
+        // Disabled - requires old ChatPort and Message system
+        return Mono.error(new UnsupportedOperationException("Topic generation temporarily disabled"));
     }
 
     @Override
@@ -67,12 +47,12 @@ public class TopicService implements TopicUseCase {
                 .map(Topic::of);
     }
 
-    private List<Message> createMessages(String userMessage) {
-        String systemPrompt = SystemPrompt.SUMMARIZE_USER_QUESTION;
-        List<Message> messages = new ArrayList<>();
-        messages.add(Message.systemMessage(systemPrompt));
-        messages.add(Message.userMessage(userMessage));
-
-        return messages;
-    }
+    // Disabled - requires old Message system
+    // private List<Message> createMessages(String userMessage) {
+    //     String systemPrompt = SystemPrompt.SUMMARIZE_USER_QUESTION;
+    //     List<Message> messages = new ArrayList<>();
+    //     messages.add(Message.systemMessage(systemPrompt));
+    //     messages.add(Message.userMessage(userMessage));
+    //     return messages;
+    // }
 }

@@ -3,6 +3,8 @@ package io.hmg.claude.messages.adapter.in.dto;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.hmg.claude.common.adapter.in.dto.BaseRequest;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -10,6 +12,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.Map;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
@@ -53,9 +56,29 @@ public class AnthropicRequest extends BaseRequest {
     private List<Object> tools;
 
     @JsonProperty("top_k")
-    private int topK;
+    private Integer topK;
 
     @JsonProperty("top_p")
     private Float topP;
+
+    @Override
+    public Object toPayload() {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+
+            String jsonString = mapper.writeValueAsString(this);
+            Map<String, Object> payload = mapper.readValue(jsonString, Map.class);
+
+            // Remove top_k when thinking is enabled
+            if (thinking != null && payload.containsKey("top_k")) {
+                payload.remove("top_k");
+            }
+
+            return payload;
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
 }
