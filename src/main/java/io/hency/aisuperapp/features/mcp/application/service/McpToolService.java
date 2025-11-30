@@ -77,11 +77,13 @@ public class McpToolService {
                         "\n\n[This tool is provided by MCP server: " + serverName + "]";
                     claudeTool.put("description", enhancedDescription);
                     claudeTool.put("input_schema", tool.getInputSchema());
-                    log.info("Converted tool: name={}, server={}", tool.getName(), serverName);
+                    log.info("Converted tool: name='{}', description length={}, input_schema={}",
+                        tool.getName(), enhancedDescription.length(), tool.getInputSchema());
                     return claudeTool;
                 })
                 .toList();
         log.info("Total converted tools: {}", tools.size());
+        log.info("Tools structure: {}", tools);
         return tools;
     }
 

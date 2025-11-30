@@ -18,6 +18,7 @@ public class McpClientProperties {
     public static class McpServerConfig {
         private String type; // docker, http, etc.
         private String containerId; // Docker container ID (for docker type with stdio)
+        private String containerName; // Docker container name (preferred over containerId)
         private String host;
         private Integer port;
         private String transport; // sse, stdio
@@ -28,6 +29,13 @@ public class McpClientProperties {
                 return String.format("http://%s:%d", host, port);
             }
             return String.format("http://%s", host);
+        }
+
+        /**
+         * Get container identifier (name takes priority over ID)
+         */
+        public String getContainerIdentifier() {
+            return containerName != null ? containerName : containerId;
         }
     }
 }

@@ -44,7 +44,7 @@ public class McpClient {
                 .params(Map.of())
                 .build();
 
-        return executeDockerCommand(serverConfig.getContainerId(), request)
+        return executeDockerCommand(serverConfig.getContainerIdentifier(), request)
                 .flatMap(response -> {
                     if (response.getError() != null) {
                         log.error("MCP error: {}", response.getError().getMessage());
@@ -87,7 +87,7 @@ public class McpClient {
                 ))
                 .build();
 
-        return executeDockerCommand(serverConfig.getContainerId(), request)
+        return executeDockerCommand(serverConfig.getContainerIdentifier(), request)
                 .flatMap(response -> {
                     if (response.getError() != null) {
                         log.error("MCP tool call error: {}", response.getError().getMessage());
