@@ -8,6 +8,6 @@ import org.springframework.data.convert.WritingConverter;
 public class MessageRoleWriteConverter implements Converter<MessageRole, String> {
     @Override
     public String convert(MessageRole source) {
-        return source.getValue();
+        return source.name();
     }
 }

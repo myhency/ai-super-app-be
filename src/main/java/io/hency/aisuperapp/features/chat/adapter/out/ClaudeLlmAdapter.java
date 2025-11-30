@@ -25,7 +25,7 @@ public class ClaudeLlmAdapter implements LlmPort {
     private static final String CLAUDE_API_URL = "http://localhost:8082/v1/messages";
 
     @Override
-    public Mono<String> sendMessage(String modelName, List<Map<String, String>> messages, Integer maxTokens) {
+    public Mono<String> sendMessage(String modelName, List<Map<String, Object>> messages, Integer maxTokens) {
         log.info("sendMessage called with model: {}, messages count: {}", modelName, messages.size());
         Map<String, Object> request = Map.of(
                 "model", modelName,
@@ -64,7 +64,7 @@ public class ClaudeLlmAdapter implements LlmPort {
     }
 
     @Override
-    public Flux<String> sendMessageStream(String modelName, List<Map<String, String>> messages, Integer maxTokens) {
+    public Flux<String> sendMessageStream(String modelName, List<Map<String, Object>> messages, Integer maxTokens) {
         Map<String, Object> request = Map.of(
                 "model", modelName,
                 "messages", messages,

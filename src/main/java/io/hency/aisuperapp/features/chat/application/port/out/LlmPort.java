@@ -8,7 +8,7 @@ import java.util.Map;
 
 public interface LlmPort {
 
-    Mono<String> sendMessage(String modelName, List<Map<String, String>> messages, Integer maxTokens);
+    Mono<String> sendMessage(String modelName, List<Map<String, Object>> messages, Integer maxTokens);
 
-    Flux<String> sendMessageStream(String modelName, List<Map<String, String>> messages, Integer maxTokens);
+    Flux<String> sendMessageStream(String modelName, List<Map<String, Object>> messages, Integer maxTokens);
 }

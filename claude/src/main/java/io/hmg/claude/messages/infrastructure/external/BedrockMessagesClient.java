@@ -121,7 +121,7 @@ public class BedrockMessagesClient {
                 // Find the closing brace for this JSON object
                 int jsonEnd = chunk.indexOf("}", jsonStart);
                 if (jsonEnd == -1) {
-                    log.warn("Incomplete JSON in chunk at position {}", jsonStart);
+                    // Incomplete JSON - will be completed in next chunk
                     break;
                 }
 

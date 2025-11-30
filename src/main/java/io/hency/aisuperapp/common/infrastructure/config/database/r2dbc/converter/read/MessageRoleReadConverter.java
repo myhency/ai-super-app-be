@@ -9,9 +9,9 @@ public class MessageRoleReadConverter implements Converter<String, MessageRole> 
     @Override
     public MessageRole convert(String source) {
         return switch (source.toLowerCase()) {
-            case "user" -> MessageRole.USER;
-            case "assistant" -> MessageRole.ASSISTANT;
-            case "system" -> MessageRole.SYSTEM;
+            case "user" -> MessageRole.user;
+            case "assistant" -> MessageRole.assistant;
+            case "system" -> MessageRole.system;
             default -> throw new IllegalArgumentException("Unknown MessageRole: " + source);
         };
     }

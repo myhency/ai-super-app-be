@@ -5,8 +5,11 @@ import io.hency.aisuperapp.features.chat.application.domain.entity.Message;
 import io.hency.aisuperapp.features.chat.application.domain.vo.MessageRole;
 import io.hency.aisuperapp.features.chat.application.port.in.ChatUseCase;
 import io.hency.aisuperapp.features.chat.application.port.out.LlmPort;
+import io.hency.aisuperapp.features.chat.application.util.MessageConverter;
 import io.hency.aisuperapp.features.chat.infrastructure.repository.ChatThreadRepository;
 import io.hency.aisuperapp.features.chat.infrastructure.repository.MessageRepository;
+import io.hency.aisuperapp.features.file.application.domain.entity.MessageFileAttachment;
+import io.hency.aisuperapp.features.file.infrastructure.repository.MessageFileAttachmentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,7 +19,6 @@ import reactor.core.publisher.Mono;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -25,6 +27,8 @@ public class ChatService implements ChatUseCase {
 
     private final ChatThreadRepository chatThreadRepository;
     private final MessageRepository messageRepository;
+    private final MessageFileAttachmentRepository messageFileAttachmentRepository;
+    private final MessageConverter messageConverter;
     private final LlmPort llmPort;
 
     @Override
@@ -64,12 +68,14 @@ public class ChatService implements ChatUseCase {
     }
 
     @Override
-    public Mono<Message> sendMessage(Long threadId, String content, Boolean stream) {
-        log.info("sendMessage called: threadId={}, content length={}, stream={}", threadId, content.length(), stream);
+    public Mono<Message> sendMessage(Long threadId, String content, Boolean stream, List<Long> fileIds) {
+        log.info("sendMessage called: threadId={}, content length={}, stream={}, fileIds={}",
+            threadId, content.length(), stream, fileIds);
+
         // Save user message
         Message userMessage = Message.builder()
                 .threadId(threadId)
-                .role(MessageRole.USER)
+                .role(MessageRole.user)
                 .content(content)
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -77,42 +83,44 @@ public class ChatService implements ChatUseCase {
         return messageRepository.save(userMessage)
                 .doOnSuccess(msg -> log.info("User message saved: id={}", msg.getId()))
                 .flatMap(savedUserMsg -> {
+                    // Save file attachments if present
+                    if (fileIds != null && !fileIds.isEmpty()) {
+                        return Flux.fromIterable(fileIds)
+                                .flatMap(fileId -> {
+                                    MessageFileAttachment attachment = MessageFileAttachment.builder()
+                                            .messageId(savedUserMsg.getId())
+                                            .fileAttachmentId(fileId)
+                                            .createdAt(LocalDateTime.now())
+                                            .build();
+                                    return messageFileAttachmentRepository.save(attachment);
+                                })
+                                .then(Mono.just(savedUserMsg));
+                    }
+                    return Mono.just(savedUserMsg);
+                })
+                .flatMap(savedUserMsg -> {
                     log.info("Getting conversation history for thread: {}", threadId);
-                    // Get conversation history
+                    // Get conversation history with attachments
                     return getThreadMessages(threadId)
-                            .doOnNext(msg -> log.info("Message in history: id={}, role={}", msg.getId(), msg.getRole()))
-                            .doOnError(err -> log.error("Error fetching messages", err))
-                            .doOnComplete(() -> log.info("Finished fetching messages"))
+                            .flatMap(msg ->
+                                messageFileAttachmentRepository.findFileAttachmentsByMessageId(msg.getId())
+                                        .collectList()
+                                        .flatMap(files -> messageConverter.convertToLlmMessage(msg, files))
+                            )
                             .collectList()
-                            .doOnSuccess(messages -> log.info("Collected {} messages", messages.size()))
-                            .doOnError(err -> log.error("Error collecting messages", err))
-                            .flatMap(messages -> {
+                            .flatMap(llmMessages -> {
+                                log.info("Built {} messages for LLM", llmMessages.size());
                                 // Get thread to know model name
                                 return getThread(threadId)
                                         .flatMap(thread -> {
                                             log.info("Found thread: {}, model: {}", thread.getId(), thread.getModelName());
-                                            // Build messages for LLM
-                                            List<Map<String, String>> llmMessages = messages.stream()
-                                                    .map(msg -> Map.of(
-                                                            "role", msg.getRole().name().toLowerCase(),
-                                                            "content", msg.getContent()
-                                                    ))
-                                                    .collect(Collectors.toList());
-                                            log.info("Built {} messages for LLM", llmMessages.size());
 
                                             // Call LLM
                                             if (Boolean.TRUE.equals(stream)) {
-                                                // For now, we'll just get the first response
-                                                // TODO: Implement proper streaming
                                                 return llmPort.sendMessageStream(thread.getModelName(), llmMessages, 4096)
                                                         .doOnNext(chunk -> log.debug("Received stream chunk: {}", chunk))
                                                         .collectList()
-                                                        .doOnSuccess(chunks -> log.debug("Collected {} chunks", chunks.size()))
-                                                        .map(chunks -> {
-                                                            String joined = String.join("", chunks);
-                                                            log.debug("Joined response length: {}, content: {}", joined.length(), joined);
-                                                            return joined;
-                                                        })
+                                                        .map(chunks -> String.join("", chunks))
                                                         .flatMap(response -> saveAssistantMessage(threadId, response));
                                             } else {
                                                 return llmPort.sendMessage(thread.getModelName(), llmMessages, 4096)
@@ -123,10 +131,84 @@ public class ChatService implements ChatUseCase {
                 });
     }
 
+    @Override
+    public Flux<String> sendMessageStream(Long threadId, String content, List<Long> fileIds) {
+        log.info("sendMessageStream called: threadId={}, content length={}, fileIds={}",
+            threadId, content.length(), fileIds);
+
+        // Save user message
+        Message userMessage = Message.builder()
+                .threadId(threadId)
+                .role(MessageRole.user)
+                .content(content)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        return messageRepository.save(userMessage)
+                .doOnSuccess(msg -> log.info("User message saved: id={}", msg.getId()))
+                .flatMap(savedUserMsg -> {
+                    // Save file attachments if present
+                    if (fileIds != null && !fileIds.isEmpty()) {
+                        return Flux.fromIterable(fileIds)
+                                .flatMap(fileId -> {
+                                    MessageFileAttachment attachment = MessageFileAttachment.builder()
+                                            .messageId(savedUserMsg.getId())
+                                            .fileAttachmentId(fileId)
+                                            .createdAt(LocalDateTime.now())
+                                            .build();
+                                    return messageFileAttachmentRepository.save(attachment);
+                                })
+                                .then(Mono.just(savedUserMsg));
+                    }
+                    return Mono.just(savedUserMsg);
+                })
+                .flatMapMany(savedUserMsg -> {
+                    log.info("Getting conversation history for thread: {}", threadId);
+                    // Get conversation history with attachments
+                    return getThreadMessages(threadId)
+                            .flatMap(msg ->
+                                messageFileAttachmentRepository.findFileAttachmentsByMessageId(msg.getId())
+                                        .collectList()
+                                        .flatMap(files -> messageConverter.convertToLlmMessage(msg, files))
+                            )
+                            .collectList()
+                            .flatMapMany(llmMessages -> {
+                                log.info("Built {} messages for LLM", llmMessages.size());
+                                // Get thread to know model name
+                                return getThread(threadId)
+                                        .flatMapMany(thread -> {
+                                            log.info("Found thread: {}, model: {}", thread.getId(), thread.getModelName());
+
+                                            // Call LLM with streaming and cache the stream
+                                            Flux<String> streamFlux = llmPort.sendMessageStream(thread.getModelName(), llmMessages, 4096)
+                                                    .doOnNext(chunk -> log.debug("Received stream chunk: {}", chunk))
+                                                    .doOnError(err -> log.error("Error during streaming", err))
+                                                    .cache();
+
+                                            // Subscribe to save the complete message in background
+                                            streamFlux
+                                                    .reduce(new StringBuilder(), StringBuilder::append)
+                                                    .map(StringBuilder::toString)
+                                                    .flatMap(fullContent -> {
+                                                        log.info("Stream complete. Saving assistant message with length: {}", fullContent.length());
+                                                        return saveAssistantMessage(threadId, fullContent);
+                                                    })
+                                                    .subscribe(
+                                                            msg -> log.info("Assistant message saved successfully: {}", msg.getId()),
+                                                            err -> log.error("Failed to save assistant message", err)
+                                                    );
+
+                                            // Return the cached stream for client consumption
+                                            return streamFlux;
+                                        });
+                            });
+                });
+    }
+
     private Mono<Message> saveAssistantMessage(Long threadId, String content) {
         Message assistantMessage = Message.builder()
                 .threadId(threadId)
-                .role(MessageRole.ASSISTANT)
+                .role(MessageRole.assistant)
                 .content(content)
                 .createdAt(LocalDateTime.now())
                 .build();
