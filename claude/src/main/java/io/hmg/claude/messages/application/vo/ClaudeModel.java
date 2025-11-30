@@ -3,9 +3,7 @@ package io.hmg.claude.messages.application.vo;
 import io.hmg.claude.common.domain.vo.NameValidator;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 @Getter
 @RequiredArgsConstructor
 public enum ClaudeModel implements NameValidator.Name {
@@ -25,7 +23,6 @@ public enum ClaudeModel implements NameValidator.Name {
     private final String name;
 
     public static ClaudeModel fromName(String name) {
-        log.info("name is {}", name);
         // Map Claude Code model names to Bedrock model names
         String mappedName = switch (name) {
             case "claude-haiku-4-5-20251001" -> "anthropic.claude-haiku-4-5-20251001";

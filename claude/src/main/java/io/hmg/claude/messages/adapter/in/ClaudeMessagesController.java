@@ -28,7 +28,6 @@ public class ClaudeMessagesController {
             ServerHttpResponse response
             ) {
         try {
-            log.info("Claude messages request: {}", request.toString());
             var model = ClaudeModel.fromName(request.getModel());
             Object payload = request.toPayload();
 

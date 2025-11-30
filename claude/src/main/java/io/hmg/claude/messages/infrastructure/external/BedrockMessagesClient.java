@@ -39,16 +39,6 @@ public class BedrockMessagesClient {
 
             return awsSignatureService.signRequest(uri, jsonBody, region)
                     .flatMapMany(headers -> {
-                        try {
-                            log.info("Sending {} request to Bedrock model: {}",
-                                    isStreaming ? "streaming" : "non-streaming", model.getModelId());
-                            String payloadJson = objectMapper.writerWithDefaultPrettyPrinter()
-                                    .writeValueAsString(jsonBody);
-                            log.debug("Bedrock request payload:\n{}", payloadJson);
-                        } catch (JsonProcessingException e) {
-                            log.error("Failed to serialize payload for logging: {}", e.getMessage());
-                        }
-
                         return webClientBuilder
                                 .baseUrl("https://bedrock-runtime." + region + ".amazonaws.com")
                                 .build()
@@ -81,9 +71,7 @@ public class BedrockMessagesClient {
                                     } else {
                                         return Mono.just(chunk);
                                     }
-                                })
-                                .doOnNext(response -> log.debug("Bedrock response chunk: {}", response))
-                                .doOnComplete(() -> log.info("Bedrock request completed"));
+                                });
                     });
         });
     }
@@ -114,8 +102,6 @@ public class BedrockMessagesClient {
 
     private Flux<String> parseBedrockEventStream(String chunk) {
         try {
-            log.debug("Raw chunk received: {}", chunk);
-
             // AWS Bedrock returns event-stream format with structure like:
             // :event-type chunk
             // :content-type application/json
@@ -152,8 +138,6 @@ public class BedrockMessagesClient {
                         byte[] decodedBytes = java.util.Base64.getDecoder().decode(base64Bytes);
                         String decodedJson = new String(decodedBytes, java.nio.charset.StandardCharsets.UTF_8);
 
-                        log.debug("Decoded event: {}", decodedJson);
-
                         // Just return the JSON, don't add "data:" prefix here
                         // The SSE format will be handled by the framework
                         events.add(decodedJson);
@@ -167,7 +151,6 @@ public class BedrockMessagesClient {
             }
 
             if (events.isEmpty()) {
-                log.debug("No events found in chunk");
                 return Flux.empty();
             }
 
